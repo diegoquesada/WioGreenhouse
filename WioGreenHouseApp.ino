@@ -7,6 +7,7 @@
 #include <Digital_Light_TSL2561.h>
 #include <ESP8266WiFi.h>
 #include "PubSubClient.h"
+#include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
 const int relayPin = 12;
@@ -14,9 +15,6 @@ const int dhtPin = 14;
 const int enablePin = 15; // Enable power to other pins
 
 String versionString = "WioGreenhouse 0.2";
-
-const char *ssid = "";
-const char *password = "";
 
 IPAddress mqttServer(10,0,0,42);
 const uint16_t mqttPort = 1883;
