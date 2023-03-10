@@ -1,6 +1,7 @@
 /**
  * WioGreenhouseApp.ino
  * Implementation of the WioGreenhouseApp class.
+ * (c) Diego Quesada
  */
 
 #include "WioGreenHouseApp.h"
@@ -145,7 +146,7 @@ String WioGreenhouseApp::getVersionStr() const
 void WioGreenhouseApp::loop()
 {
   // Sensors update occurs on a set interval.
-  unsigned char sensorsUpdate = updateSensors();
+  unsigned char sensorsUpdate = _devices.updateSensors();
   if (sensorsUpdate == 1)
   {
     pushUpdate();
