@@ -25,9 +25,11 @@ const char *mqttUserName = "wiolink1";
 const char *mqttPassword = "elendil";
 
 
+/*static*/ WioGreenhouseApp *WioGreenhouseApp::_singleton = nullptr;
+
 WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
-    _webServer(this),
+    _webServer(*this),
     _timeClient(_ntpUDP)
 {
     _singleton = this;
@@ -198,12 +200,12 @@ bool WioGreenhouseApp::pushUpdate()
 void WioGreenhouseApp::updateRelay()
 {
   bool doOverride = false;
-  if (relayOverride != 0)
+  if (_relayOverride != 0)
   {
     unsigned long currentTime = millis();
     if (currentTime < _relayOverrideTime) // we wrapped
     { 
-      doOverride = (ULONG_MAX - relayOverrideTime + 1 + currentTime) > RELAY_OVERRIDE;
+      doOverride = (ULONG_MAX - _relayOverrideTime + 1 + currentTime) > RELAY_OVERRIDE;
     }
     else
     {
@@ -234,55 +236,16 @@ void WioGreenhouseApp::updateRelay()
 
 }
 
-//--------------------------------------------------------------------------------
-// HTTP server handlers
-
-void WioGreenhouseApp::handleRoot()
+void WioGreenhouseApp::setRelay(bool on)
 {
-  Serial.println("HTTP server: request for root.");
-  _webServer.send(200, "text/html", "<html><head><title>GrowLights</title></head><body>" + versionString + "</body></html>");
-}
-
-void WioGreenhouseApp::handleStatus()
-{
-  if (_webServer.method() == HTTP_GET)
+  if (on)
   {
-    Serial.println("HTTP server: request for /status.");
-    _webServer.send(200, "application/json",
-      String("{ \"wifiConnected\": ") + String(wifiConnected ? "true, " : "false, ") +
-      String("\"mqttConnected\":")    + String(mqttConnected ? "true, " : "false, ") +
-      String("\"sensorsOK\":")        + String(_devices.areSensorsOK() ? "true }" : "false }"));
+    _relayOverride = 1;
+    _relayOverrideTime = millis();
   }
-}
-
-void WioGreenhouseApp::handleTime()
-{
-  if (_webServer.method() == HTTP_GET)
+  else
   {
-    _webServer.send(200, "application/json", String(timeClient.getFormattedTime()));
-  }
-}
-
-void WioGreenhouseApp::handleRelay()
-{
-  if (_webServer.method() != HTTP_POST)
-  {
-    _webServer.send(405, "text/plain", "Method Not Allowed");
-  }
-  
-  if (_webServer.argName(0) == "on")
-  {
-    if (_webServer.arg(0) == "yes")
-    {
-      _relayOverride = 1;
-      _relayOverrideTime = millis();
-      _webServer.send(200, "text/plain", "Relay turned on for 1hr.\n");
-    }
-    else if (server.arg(0) == "no")
-    {
-      _relayOverride = 2;
-      _relayOverrideTime = millis();
-      _webServer.send(200, "text/plain", "Relay turned off for 1hr.\n");
-    }
+    _relayOverride = 2;
+    _relayOverrideTime = millis();
   }
 }

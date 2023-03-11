@@ -53,9 +53,9 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
 
   if (needsUpdate)
   {
-    if (!_dht.readTempAndHumidity(temp_hum_val))
+    if (!_dht.readTempAndHumidity(_temp_hum_val))
     {
-      lux = TSL2561.readVisibleLux();
+      _lux = TSL2561.readVisibleLux();
       
       Serial.print("Humidity: ");
       Serial.print(_temp_hum_val[0]);
@@ -72,8 +72,8 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
       _sensorsOK = false;
     }
   
-    lastUpdateTime = millis();
-    if (lastUpdateTime == 0) lastUpdateTime++; // zero is a special case.
+    _lastUpdateTime = millis();
+    if (_lastUpdateTime == 0) _lastUpdateTime++; // zero is a special case.
 
     return _sensorsOK;
   }

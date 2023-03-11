@@ -14,7 +14,7 @@ graph TD;
    A[WioLink] --> |D11| B[Relay]
    A --> |D14| C[DHT11]
    A --> |I2C| D[TLS2561]
-   A --> |Wifi| E(MQTT broker)
+   A -.-> |Wifi| E(MQTT broker)
 ```
 
 ## Future improvements

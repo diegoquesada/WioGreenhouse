@@ -19,6 +19,9 @@ public:
     bool isWifiConnected() const { return _wifiConnected; }
     bool isMqttConnected() const { return _mqttConnected; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
+    bool areSensorsOK() const { return _devices.areSensorsOK(); }
+
+    void setRelay(bool on);
 
 private:
     void initWifi();

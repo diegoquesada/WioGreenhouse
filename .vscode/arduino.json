@@ -1,5 +1,6 @@
 {
     "board": "esp8266:esp8266:wiolink",
     "port": "COM5",
-    "sketch": "WioGreenhouse.ino"
+    "sketch": "WioGreenhouse.ino",
+    "output": "../../build/WioGreenhouse"
 }
