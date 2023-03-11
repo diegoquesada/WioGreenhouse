@@ -5,14 +5,12 @@
  */
 
 #include "WioGreenHouseApp.h"
-#include <Digital_Light_TSL2561.h>
 #include <ESP8266WiFi.h>
 #include "PubSubClient.h"
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
 const int relayPin = 12;
-const int dhtPin = 14;
 const int enablePin = 15; // Enable power to other pins
 
 String versionString = "WioGreenhouse 0.2";
@@ -28,9 +26,9 @@ const char *mqttPassword = "elendil";
 
 
 WioGreenhouseApp::WioGreenhouseApp() :
-    _dht(dhtPin, DHT11),
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
-    _webServer(this)
+    _webServer(this),
+    _timeClient(_ntpUDP)
 {
     _singleton = this;
 }
@@ -43,12 +41,9 @@ void WioGreenhouseApp::setup()
   digitalWrite(enablePin, HIGH); // Enable power to Grove connectors
   digitalWrite(relayPin, LOW); // Turn relay off
 
+  _devices.setup();
+
   Serial.begin(9600);
-
-  Wire.begin();
-  _dht.begin();
-  TSL2561.init();
-
   delay(500); // allow serial port time to connect
 
   Serial.println(versionString);
@@ -152,13 +147,83 @@ void WioGreenhouseApp::loop()
     pushUpdate();
   }
 
-  if (sensorsUpdate != 2 && timeClient.update()) // update time and relay as frequently as we poll sensors
+  if (sensorsUpdate != 2 && _timeClient.update()) // update time and relay as frequently as we poll sensors
   {
     updateRelay();
   }
 
-  server.handleClient();
+  _webServer.handleClient();
+}
 
+/**
+ * Uploads sensor readings to MQTT broker.
+ */
+bool WioGreenhouseApp::pushUpdate()
+{
+  // Make sure the MQTT client is up and running.
+  if (!_pubSubClient.connected())
+  {
+    connectMQTT();
+  }
+
+  if (_pubSubClient.connected())
+  {
+    if (_pubSubClient.publish(tempTopic, String(_devices.getTemp(), 1).c_str()))
+    {
+      Serial.println("Temperature sent.");
+    }
+
+    if (_pubSubClient.publish(humidityTopic, String(_devices.getHum(), 1).c_str()))
+    {
+      Serial.println("Humidity sent.");
+    }
+
+    if (_pubSubClient.publish(lightTopic, String(_devices.getLux()).c_str()))
+    {
+      Serial.println("Lux sent.");
+    }
+
+    return true;
+  }
+  else
+  {
+    Serial.println("MQTT not connected.");
+    return false;
+  }
+}
+
+/**
+ * Sets the relay on or off, as appropriate.
+ */
+void WioGreenhouseApp::updateRelay()
+{
+  bool doOverride = false;
+  if (relayOverride != 0)
+  {
+    unsigned long currentTime = millis();
+    if (currentTime < _relayOverrideTime) // we wrapped
+    { 
+      doOverride = (ULONG_MAX - relayOverrideTime + 1 + currentTime) > RELAY_OVERRIDE;
+    }
+    else
+    {
+      doOverride = (_relayOverrideTime - currentTime) > RELAY_OVERRIDE;
+    }
+  }
+
+  if (doOverride)
+  {
+    _relayState = (_relayOverride == 1);
+  }
+  else
+  {
+    _relayState = _timeClient.getHours() > 6 && _timeClient.getHours() < 20;
+  }
+  
+  if (_relayState)
+    digitalWrite(relayPin, HIGH);
+  else
+    digitalWrite(relayPin, LOW);
 }
 
 /**
@@ -186,7 +251,7 @@ void WioGreenhouseApp::handleStatus()
     _webServer.send(200, "application/json",
       String("{ \"wifiConnected\": ") + String(wifiConnected ? "true, " : "false, ") +
       String("\"mqttConnected\":")    + String(mqttConnected ? "true, " : "false, ") +
-      String("\"sensorsOK\":")        + String(sensorsOK ? "true }" : "false }"));
+      String("\"sensorsOK\":")        + String(_devices.areSensorsOK() ? "true }" : "false }"));
   }
 }
 

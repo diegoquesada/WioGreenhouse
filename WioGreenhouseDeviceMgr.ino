@@ -5,10 +5,22 @@
 */
 
 #include "WioGreenhouseDeviceMgr.h"
+#include <Digital_Light_TSL2561.h>
 
-WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr()
+const int dhtPin = 14;
+
+WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
+    _dht(dhtPin, DHT11)
 {
 
+}
+
+void WioGreenhouseDeviceMgr::setup()
+{
+  Wire.begin();
+  _dht.begin();
+
+  TSL2561.init();
 }
 
 //--------------------------------------------------------------------------------
@@ -26,44 +38,44 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
   unsigned long currentTime = millis();
   bool needsUpdate = false;
 
-  if (lastUpdateTime == 0) // special case: first time
+  if (_lastUpdateTime == 0) // special case: first time
   {
     needsUpdate = true;
   }
-  else if (currentTime < lastUpdateTime) // we wrapped
+  else if (currentTime < _lastUpdateTime) // we wrapped
   { 
-    needsUpdate = (ULONG_MAX - lastUpdateTime + 1 + currentTime) > UPDATE_INTERVAL;
+    needsUpdate = (ULONG_MAX - _lastUpdateTime + 1 + currentTime) > UPDATE_INTERVAL;
   }
   else
   {
-    needsUpdate = (currentTime - lastUpdateTime) > UPDATE_INTERVAL;
+    needsUpdate = (currentTime - _lastUpdateTime) > UPDATE_INTERVAL;
   }
 
   if (needsUpdate)
   {
-    if (!dht.readTempAndHumidity(temp_hum_val))
+    if (!_dht.readTempAndHumidity(temp_hum_val))
     {
       lux = TSL2561.readVisibleLux();
       
       Serial.print("Humidity: ");
-      Serial.print(temp_hum_val[0]);
+      Serial.print(_temp_hum_val[0]);
       Serial.print(" %\tTemperature: ");
-      Serial.print(temp_hum_val[1]);
+      Serial.print(_temp_hum_val[1]);
       Serial.print(" *C\tLux: ");
-      Serial.println(lux);
+      Serial.println(_lux);
   
-      sensorsOK = true;
+      _sensorsOK = true;
     }
     else
     {
       Serial.println("Failed to get temperature and humidity.");
-      sensorsOK = false;
+      _sensorsOK = false;
     }
   
     lastUpdateTime = millis();
     if (lastUpdateTime == 0) lastUpdateTime++; // zero is a special case.
 
-    return sensorsOK;
+    return _sensorsOK;
   }
   else
   {
