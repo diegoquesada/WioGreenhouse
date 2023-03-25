@@ -39,12 +39,15 @@ private:
     bool _mqttConnected = false;
     bool _relayState = false;
 
-    const unsigned long RELAY_OVERRIDE = 60*60*60; /// If relay overriden via API, this is how long the override will hold.
+    const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
     unsigned short _relayOverride = 0; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
-    unsigned long _relayOverrideTime = 0; /// When the override was set
+    TimerCounter _relayTimer = 0; /// When the override was set
 
     WiFiClient _wifiClient;
+
     PubSubClient _pubSubClient;
+    const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
+    TimerCounter _pubSubTimer;
 
     WiFiUDP _ntpUDP;
     const int timeOffset = -4 * 60 * 60; // 5 hours offset (in seconds) during DST

@@ -9,15 +9,16 @@
 //--------------------------------------------------------------------------------
 // Initialization
 
-WioGreenhouseApp app;
+WioGreenhouseApp *app = nullptr;
 
 void setup()
 {
-  app.setup();
+  app = new WioGreenhouseApp;
+  app->setup();
 }
 
 void loop()
 {
-  app.loop();
+  app->loop();
 }
 

@@ -5,6 +5,7 @@
 */
 #pragma once
 
+#include "TimerCounter.h"
 class WioGreenhouseDeviceMgr
 {
 public:
@@ -21,8 +22,8 @@ public:
 
 private:
     const unsigned long UPDATE_INTERVAL = 30000; /// How often we should update sensors in ms.
-    unsigned long _lastUpdateTime = 0; /// Last time we updated sensors
 
+    TimerCounter _updateTimer;
     bool _sensorsOK = false;
 
     DHT _dht; /// Grove digital humidity and temp sensor

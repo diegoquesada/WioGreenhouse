@@ -10,10 +10,10 @@
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
-const int relayPin = 12;
+const int relayPin = 13;
 const int enablePin = 15; // Enable power to other pins
 
-String versionString = "WioGreenhouse 0.2";
+String versionString = "WioGreenhouse 0.3";
 
 IPAddress mqttServer(10,0,0,42);
 const uint16_t mqttPort = 1883;
@@ -30,7 +30,9 @@ const char *mqttPassword = "elendil";
 WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
     _webServer(*this),
-    _timeClient(_ntpUDP)
+    _timeClient(_ntpUDP),
+    _pubSubTimer(PUBSUB_INTERVAL),
+    _relayTimer(RELAY_OVERRIDE)
 {
     _singleton = this;
 }
@@ -87,7 +89,7 @@ void WioGreenhouseApp::initWifi()
  */
 bool WioGreenhouseApp::connectMQTT()
 {
-  if (!_pubSubClient.connected())
+  if (!_pubSubClient.connected() && _pubSubTimer.IsItTime())
   {
     Serial.println("Attempting to connect to MQTT.");
 
@@ -100,6 +102,8 @@ bool WioGreenhouseApp::connectMQTT()
       Serial.print("Connection to MQTT broker failed, error: ");
       Serial.println(_pubSubClient.state());
     }
+
+    _pubSubTimer.Reset();
   }
 
   if (_pubSubClient.connected())
@@ -142,6 +146,7 @@ String WioGreenhouseApp::getVersionStr() const
 
 void WioGreenhouseApp::loop()
 {
+  if (_relayOverride != 0) Serial.print("#");
   // Sensors update occurs on a set interval.
   unsigned char sensorsUpdate = _devices.updateSensors();
   if (sensorsUpdate == 1)
@@ -149,8 +154,9 @@ void WioGreenhouseApp::loop()
     pushUpdate();
   }
 
-  if (sensorsUpdate != 2 && _timeClient.update()) // update time and relay as frequently as we poll sensors
+  if (sensorsUpdate != 2) // update time and relay as frequently as we poll sensors
   {
+    _timeClient.update();
     updateRelay();
   }
 
@@ -199,23 +205,21 @@ bool WioGreenhouseApp::pushUpdate()
  */
 void WioGreenhouseApp::updateRelay()
 {
-  bool doOverride = false;
   if (_relayOverride != 0)
   {
-    unsigned long currentTime = millis();
-    if (currentTime < _relayOverrideTime) // we wrapped
-    { 
-      doOverride = (ULONG_MAX - _relayOverrideTime + 1 + currentTime) > RELAY_OVERRIDE;
-    }
-    else
-    {
-      doOverride = (_relayOverrideTime - currentTime) > RELAY_OVERRIDE;
-    }
-  }
-
-  if (doOverride)
-  {
     _relayState = (_relayOverride == 1);
+
+    Serial.print("Relay overridden to ");
+    if (_relayState)
+      Serial.println("ON");
+    else
+      Serial.println("OFF");
+
+    if (_relayTimer.IsItTime()) // Relay has been overriden and it's time to set back.
+    {
+      _relayOverride = 0;
+      Serial.println("Relay override has expired, setting back.");
+    }
   }
   else
   {
@@ -241,11 +245,11 @@ void WioGreenhouseApp::setRelay(bool on)
   if (on)
   {
     _relayOverride = 1;
-    _relayOverrideTime = millis();
+    _relayTimer.Reset();
   }
   else
   {
     _relayOverride = 2;
-    _relayOverrideTime = millis();
+    _relayTimer.Reset();
   }
 }

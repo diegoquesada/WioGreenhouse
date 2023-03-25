@@ -10,6 +10,7 @@
 const int dhtPin = 14;
 
 WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
+    _updateTimer(UPDATE_INTERVAL),
     _dht(dhtPin, DHT11)
 {
 
@@ -30,28 +31,12 @@ void WioGreenhouseDeviceMgr::setup()
  * Takes readings from temp, humidity and lux sensors.
  * Updates sensorsOK global variable to indicate whether all sensors are working properly.
  * @return 0 if at least one sensor could not be retrieved successfully
- *         1 if all sensors were retreaved successfully
+ *         1 if all sensors were retrieved successfully
  *         2 if it is not yet time to update
  */
 unsigned char WioGreenhouseDeviceMgr::updateSensors()
 {
-  unsigned long currentTime = millis();
-  bool needsUpdate = false;
-
-  if (_lastUpdateTime == 0) // special case: first time
-  {
-    needsUpdate = true;
-  }
-  else if (currentTime < _lastUpdateTime) // we wrapped
-  { 
-    needsUpdate = (ULONG_MAX - _lastUpdateTime + 1 + currentTime) > UPDATE_INTERVAL;
-  }
-  else
-  {
-    needsUpdate = (currentTime - _lastUpdateTime) > UPDATE_INTERVAL;
-  }
-
-  if (needsUpdate)
+  if (_updateTimer.IsItTime())
   {
     if (!_dht.readTempAndHumidity(_temp_hum_val))
     {
@@ -72,8 +57,7 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
       _sensorsOK = false;
     }
   
-    _lastUpdateTime = millis();
-    if (_lastUpdateTime == 0) _lastUpdateTime++; // zero is a special case.
+    _updateTimer.Reset();
 
     return _sensorsOK;
   }
