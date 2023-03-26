@@ -52,7 +52,8 @@ void WioGreenhouseServer::getStatus()
       String("\"mqttConnected\":")    + String(_app.isMqttConnected() ? "true, " : "false, ") +
       String("\"sensorsOK\":")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
       String("\"relayOn\":")          + String(_app.isRelayOn() ? "true, " : "false, ") +
-      String("\"relayOverride\":")     + String(_app.getRelayOverride() ? "true }" : "false }"));
+      String("\"relayOverride\":")    + String(_app.getRelayOverride() ? "true, " : "false, ") +
+      String("\"bootupTime\":")       + String(_app.getBootupTime()) + "}\n");
   }
 }
 

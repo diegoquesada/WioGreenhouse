@@ -22,6 +22,7 @@ public:
     bool getRelayOverride() const { return _relayOverride; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
     bool areSensorsOK() const { return _devices.areSensorsOK(); }
+    String getBootupTime();
 
     void setRelay(bool on, unsigned long delay);
 
@@ -40,6 +41,8 @@ private:
     bool _wifiConnected = false;
     bool _mqttConnected = false;
     bool _relayState = false;
+
+    unsigned long _bootupTime = 0; /// Set to 0 by default, will be initialized in loop()
 
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
     unsigned short _relayOverride = 0; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off

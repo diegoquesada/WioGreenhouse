@@ -13,7 +13,7 @@ const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
 const int relayPin = 13;
 const int enablePin = 15; // Enable power to other pins
 
-String versionString = "WioGreenhouse 0.3";
+const char versionString[] = "WioGreenhouse 0.4";
 
 IPAddress mqttServer(10,0,0,42);
 const uint16_t mqttPort = 1883;
@@ -141,7 +141,7 @@ bool WioGreenhouseApp::initHTTPServer()
 
 String WioGreenhouseApp::getVersionStr() const
 {
-    return versionString;
+    return (const char *)versionString;
 }
 
 void WioGreenhouseApp::loop()
@@ -156,6 +156,11 @@ void WioGreenhouseApp::loop()
   if (sensorsUpdate != 2) // update time and relay as frequently as we poll sensors
   {
     _timeClient.update();
+    if (_bootupTime == 0 && _timeClient.isTimeSet())
+    {
+      _bootupTime = _timeClient.getEpochTime();
+    }
+
     updateRelay();
   }
 
@@ -243,16 +248,34 @@ void WioGreenhouseApp::updateRelay()
 */
 void WioGreenhouseApp::setRelay(bool on, unsigned long delay)
 {
+  Serial.println(String("setRelay(") + on + String(", ") + delay + ")");
+
   if (on)
   {
     _relayOverride = 1;
-    if (delay != 0) _relayTimer.setDelay(delay);
+    _relayTimer.setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
     _relayTimer.Reset();
   }
   else
   {
     _relayOverride = 2;
-    if (delay != 0) _relayTimer.setDelay(delay);
+    _relayTimer.setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
     _relayTimer.Reset();
+  }
+}
+
+String WioGreenhouseApp::getBootupTime()
+{
+  if (_timeClient.isTimeSet())
+  {
+    unsigned long elapsed = _timeClient.getEpochTime() - _bootupTime;
+    unsigned long days = elapsed / 86400;
+    unsigned long hours = (elapsed % 86400) / 3600;
+    unsigned long minutes = (elapsed % 3600) / 60;
+    return String(days) + "d " + String(hours) + "hr " + String(minutes) + "min";
+  }
+  else
+  {
+    return "NA";
   }
 }
