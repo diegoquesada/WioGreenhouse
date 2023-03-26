@@ -51,7 +51,8 @@ void WioGreenhouseServer::getStatus()
       String("{ \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
       String("\"mqttConnected\":")    + String(_app.isMqttConnected() ? "true, " : "false, ") +
       String("\"sensorsOK\":")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
-      String("\"relayOn\":")          + String(_app.isRelayOn() ? "true }" : "false }"));
+      String("\"relayOn\":")          + String(_app.isRelayOn() ? "true, " : "false, ") +
+      String("\"relayOverride\":")     + String(_app.getRelayOverride() ? "true }" : "false }"));
   }
 }
 
@@ -72,15 +73,22 @@ void WioGreenhouseServer::setRelay()
   
   if (argName(0) == "on")
   {
+    unsigned long delayValue = 0; // zero means don't change
+    if (hasArg("delay"))
+    {
+      delayValue = arg("delay").toInt();
+      if (delayValue < 5000) delayValue = 0; // Ignore invalid values
+    }
+    
     if (arg(0) == "yes")
     {
-      _app.setRelay(true);
-      send(200, "text/plain", "Relay turned on for 1hr.\n");
+      _app.setRelay(true, delayValue);
+      send(200, "text/plain", String("Relay turned on for ") + delayValue + "ms.\n");
     }
     else if (arg(0) == "no")
     {
-      _app.setRelay(false);
-      send(200, "text/plain", "Relay turned off for 1hr.\n");
+      _app.setRelay(false, delayValue);
+      send(200, "text/plain", String("Relay turned off for ") + delayValue + "ms.\n");
     }
   }
 }

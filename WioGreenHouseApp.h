@@ -19,10 +19,11 @@ public:
     bool isWifiConnected() const { return _wifiConnected; }
     bool isMqttConnected() const { return _mqttConnected; }
     bool isRelayOn() const { return _relayState; }
+    bool getRelayOverride() const { return _relayOverride; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
     bool areSensorsOK() const { return _devices.areSensorsOK(); }
 
-    void setRelay(bool on);
+    void setRelay(bool on, unsigned long delay);
 
 private:
     void initWifi();

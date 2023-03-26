@@ -30,7 +30,7 @@ const char *mqttPassword = "elendil";
 WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
     _webServer(*this),
-    _timeClient(_ntpUDP),
+    _timeClient(_ntpUDP, timeOffset),
     _pubSubTimer(PUBSUB_INTERVAL),
     _relayTimer(RELAY_OVERRIDE)
 {
@@ -204,15 +204,15 @@ bool WioGreenhouseApp::pushUpdate()
  */
 void WioGreenhouseApp::updateRelay()
 {
-  if (_relayOverride != 0)
+  if (_relayOverride != 0 && _relayTimer.IsItTime()) // Relay has been overriden and it's time to set back.
+  {
+    _relayOverride = 0;
+    Serial.println("Relay override has expired, setting back.");
+  }
+
+  if (_relayOverride != 0) // Check again, might have expired above.
   {
     _relayState = (_relayOverride == 1);
-
-    if (_relayTimer.IsItTime()) // Relay has been overriden and it's time to set back.
-    {
-      _relayOverride = 0;
-      Serial.println("Relay override has expired, setting back.");
-    }
   }
   else
   {
@@ -237,16 +237,22 @@ void WioGreenhouseApp::updateRelay()
 
 }
 
-void WioGreenhouseApp::setRelay(bool on)
+/**
+ * Sets or unsets the relay for a specified amount of time.
+ * @param delay Amount of time until relay resets back, in ms. Pass 0 to leave the delay unchanged.
+*/
+void WioGreenhouseApp::setRelay(bool on, unsigned long delay)
 {
   if (on)
   {
     _relayOverride = 1;
+    if (delay != 0) _relayTimer.setDelay(delay);
     _relayTimer.Reset();
   }
   else
   {
     _relayOverride = 2;
+    if (delay != 0) _relayTimer.setDelay(delay);
     _relayTimer.Reset();
   }
 }
