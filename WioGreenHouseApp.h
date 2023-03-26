@@ -18,6 +18,7 @@ public:
     String getVersionStr() const;
     bool isWifiConnected() const { return _wifiConnected; }
     bool isMqttConnected() const { return _mqttConnected; }
+    bool isRelayOn() const { return _relayState; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
     bool areSensorsOK() const { return _devices.areSensorsOK(); }
 

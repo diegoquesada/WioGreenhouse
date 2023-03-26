@@ -50,7 +50,8 @@ void WioGreenhouseServer::getStatus()
     send(200, "application/json",
       String("{ \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
       String("\"mqttConnected\":")    + String(_app.isMqttConnected() ? "true, " : "false, ") +
-      String("\"sensorsOK\":")        + String(_app.areSensorsOK() ? "true }" : "false }"));
+      String("\"sensorsOK\":")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
+      String("\"relayOn\":")          + String(_app.isRelayOn() ? "true }" : "false }"));
   }
 }
 

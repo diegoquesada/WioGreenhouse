@@ -146,7 +146,6 @@ String WioGreenhouseApp::getVersionStr() const
 
 void WioGreenhouseApp::loop()
 {
-  if (_relayOverride != 0) Serial.print("#");
   // Sensors update occurs on a set interval.
   unsigned char sensorsUpdate = _devices.updateSensors();
   if (sensorsUpdate == 1)
@@ -209,12 +208,6 @@ void WioGreenhouseApp::updateRelay()
   {
     _relayState = (_relayOverride == 1);
 
-    Serial.print("Relay overridden to ");
-    if (_relayState)
-      Serial.println("ON");
-    else
-      Serial.println("OFF");
-
     if (_relayTimer.IsItTime()) // Relay has been overriden and it's time to set back.
     {
       _relayOverride = 0;
@@ -225,11 +218,15 @@ void WioGreenhouseApp::updateRelay()
   {
     _relayState = _timeClient.getHours() > 6 && _timeClient.getHours() < 20;
   }
-  
+
   if (_relayState)
+  {
     digitalWrite(relayPin, HIGH);
+  }
   else
+  {
     digitalWrite(relayPin, LOW);
+  }
 }
 
 /**
