@@ -17,11 +17,13 @@ private:
     static void handleStatus();
     static void handleTime();
     static void handleRelay();
+    static void handleSensors();
 
     void getHomepage();
     void getStatus();
     void getTime();
     void setRelay();
+    void getSensors();
 
 private:
     WioGreenhouseApp& _app;

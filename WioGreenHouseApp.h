@@ -26,6 +26,8 @@ public:
 
     void setRelay(bool on, unsigned long delay);
 
+    WioGreenhouseDeviceMgr& getDevices() { return _devices; }
+
 private:
     void initWifi();
     bool connectMQTT();

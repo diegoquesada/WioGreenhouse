@@ -9,6 +9,7 @@ bool WioGreenhouseServer::init()
   on("/status", handleStatus);
   on("/time", handleTime);
   on("/relay", handleRelay);
+  on("/sensors", handleSensors);
   
   begin();
 
@@ -35,6 +36,11 @@ bool WioGreenhouseServer::init()
     _singleton->setRelay();
 }
 
+/*static*/ void WioGreenhouseServer::handleSensors()
+{
+  _singleton->getSensors();
+}
+
 void WioGreenhouseServer::getHomepage()
 {
     Serial.println("HTTP server: request for root.");
@@ -48,12 +54,12 @@ void WioGreenhouseServer::getStatus()
   {
     Serial.println("HTTP server: request for /status.");
     send(200, "application/json",
-      String("{ \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
-      String("\"mqttConnected\":")    + String(_app.isMqttConnected() ? "true, " : "false, ") +
-      String("\"sensorsOK\":")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
-      String("\"relayOn\":")          + String(_app.isRelayOn() ? "true, " : "false, ") +
-      String("\"relayOverride\":")    + String(_app.getRelayOverride() ? "true, " : "false, ") +
-      String("\"bootupTime\":")       + String(_app.getBootupTime()) + "}\n");
+      String("{\n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
+      String( "\n  \"mqttConnected\": ") + String(_app.isMqttConnected() ? "true, " : "false, ") +
+      String( "\n  \"sensorsOK\": ")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
+      String( "\n  \"relayOn\":")          + String(_app.isRelayOn() ? "true, " : "false, ") +
+      String( "\n  \"relayOverride\":")    + String(_app.getRelayOverride() ? "true, " : "false, ") +
+      String( "\n  \"bootupTime\":")       + String(_app.getBootupTime()) + "\n}\n");
   }
 }
 
@@ -91,5 +97,17 @@ void WioGreenhouseServer::setRelay()
       _app.setRelay(false, delayValue);
       send(200, "text/plain", String("Relay turned off for ") + delayValue + "ms.\n");
     }
+  }
+}
+
+void WioGreenhouseServer::getSensors()
+{
+  if (method() == HTTP_GET)
+  {
+    Serial.println("HTTP server: request for /sensors.");
+    send(200, "application/json",
+      String("{\n  \"temperature\": ") + _app.getDevices().getTemp() + ", " +
+      String( "\n  \"humidity\": ")    + _app.getDevices().getHum() + ", " +
+      String( "\n  \"lux\": ")         + _app.getDevices().getLux() + "\n}\n");
   }
 }
