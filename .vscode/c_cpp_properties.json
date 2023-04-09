@@ -6,6 +6,7 @@
             "compilerPath": "@C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.1\\tools\\warnings\\none-g++",
             "compilerArgs": [
                 "-U__STRICT_ANSI__",
+                "-fstack-protector",
                 "-free",
                 "-fipa-pta",
                 "-Werror=return-type",
@@ -48,6 +49,8 @@
                 "TCP_MSS=536",
                 "LWIP_FEATURES=1",
                 "LWIP_IPV6=0",
+                "DEBUG_ESP_PORT=Serial",
+                "DEBUG_ESP_OOM",
                 "ARDUINO=10607",
                 "ARDUINO_ESP8266_WIO_LINK",
                 "ARDUINO_ARCH_ESP8266",

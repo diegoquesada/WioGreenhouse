@@ -13,6 +13,7 @@ public:
 
     void setup();
     unsigned char updateSensors();
+    void setUpdateInterval(unsigned long interval); /// Changes the frequency of sensor updates
 
     bool areSensorsOK() const { return _sensorsOK; }
 
@@ -21,7 +22,7 @@ public:
     long getLux() const { return _lux; }
 
 private:
-    const unsigned long UPDATE_INTERVAL = 30000; /// How often we should update sensors in ms.
+    const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
 
     TimerCounter _updateTimer;
     bool _sensorsOK = false;

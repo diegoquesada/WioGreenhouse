@@ -13,7 +13,7 @@ const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
 const int relayPin = 13;
 const int enablePin = 15; // Enable power to other pins
 
-const char versionString[] = "WioGreenhouse 0.4";
+const char versionString[] = "WioGreenhouse 0.5";
 
 IPAddress mqttServer(10,0,0,42);
 const uint16_t mqttPort = 1883;
@@ -47,7 +47,7 @@ void WioGreenhouseApp::setup()
 
   _devices.setup();
 
-  Serial.begin(9600);
+  Serial.begin(74880);
   delay(500); // allow serial port time to connect
 
   Serial.println(versionString);
@@ -76,6 +76,7 @@ void WioGreenhouseApp::initWifi()
     Serial.print(".");
   }
   Serial.println("");
+  printTime();
   Serial.print("Connected to ");
   Serial.print(ssid);
   Serial.print(", IP address: ");
@@ -91,9 +92,11 @@ bool WioGreenhouseApp::connectMQTT()
 {
   if (!_pubSubClient.connected() && _pubSubTimer.IsItTime())
   {
+    printTime();
     Serial.println("Attempting to connect to MQTT.");
 
-    if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
+    printTime();
+  if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
     {
       Serial.println("Connected to MQTT broker");
     }
@@ -127,16 +130,17 @@ bool WioGreenhouseApp::connectMQTT()
  */
 bool WioGreenhouseApp::initHTTPServer()
 {
-    if (_webServer.init())
-    {
-        Serial.println("HTTP webServer started.");
-        return true;
-    }
-    else
-    {
-        Serial.println("Failed to initialize HTTP webServer");
-        return false;
-    }
+  printTime();
+  if (_webServer.init())
+  {
+      Serial.println("HTTP webServer started.");
+      return true;
+  }
+  else
+  {
+      Serial.println("Failed to initialize HTTP webServer");
+      return false;
+  }
 }
 
 String WioGreenhouseApp::getVersionStr() const
@@ -199,6 +203,7 @@ bool WioGreenhouseApp::pushUpdate()
   }
   else
   {
+    printTime();
     Serial.println("MQTT not connected.");
     return false;
   }
@@ -212,6 +217,7 @@ void WioGreenhouseApp::updateRelay()
   if (_relayOverride != 0 && _relayTimer.IsItTime()) // Relay has been overriden and it's time to set back.
   {
     _relayOverride = 0;
+    printTime();
     Serial.println("Relay override has expired, setting back.");
   }
 
@@ -248,6 +254,7 @@ void WioGreenhouseApp::updateRelay()
 */
 void WioGreenhouseApp::setRelay(bool on, unsigned long delay)
 {
+  printTime();
   Serial.println(String("setRelay(") + on + String(", ") + delay + ")");
 
   if (on)
@@ -277,5 +284,15 @@ String WioGreenhouseApp::getBootupTime()
   else
   {
     return "NA";
+  }
+}
+
+void WioGreenhouseApp::printTime()
+{
+  if (_timeClient.isTimeSet())
+  {
+    Serial.print("[");
+    Serial.print(_timeClient.getEpochTime() - _bootupTime);
+    Serial.print("] ");
   }
 }

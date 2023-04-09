@@ -5,12 +5,13 @@
 */
 
 #include "WioGreenhouseDeviceMgr.h"
+#include "WioGreenHouseApp.h"
 #include <Digital_Light_TSL2561.h>
 
 const int dhtPin = 14;
 
 WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
-    _updateTimer(UPDATE_INTERVAL),
+    _updateTimer(DEFAULT_UPDATE_INTERVAL),
     _dht(dhtPin, DHT11)
 {
 
@@ -38,6 +39,8 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
 {
   if (_updateTimer.IsItTime())
   {
+    WioGreenhouseApp::getApp().printTime();
+
     if (!_dht.readTempAndHumidity(_temp_hum_val))
     {
       _lux = TSL2561.readVisibleLux();
@@ -67,3 +70,12 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
   }
 }
 
+void WioGreenhouseDeviceMgr::setUpdateInterval(unsigned long interval)
+{
+  // Minimum: 30 seconds, maximum: 1 hour
+  if (interval >= 30 * 1000 && interval <= 60 * 60 * 1000)
+  {
+    _updateTimer.setDelay(interval);
+    _updateTimer.Reset();
+  }
+}

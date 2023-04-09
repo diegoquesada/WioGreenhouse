@@ -2,5 +2,6 @@
     "board": "esp8266:esp8266:wiolink",
     "port": "COM5",
     "sketch": "WioGreenhouse.ino",
-    "output": "../../build/WioGreenhouse"
+    "output": "../../build/WioGreenhouse",
+    "configuration": "xtal=80,vt=flash,exception=enabled,stacksmash=enabled,ssl=all,mmu=3232,non32xfer=fast,eesz=4M2M,ip=lm2f,dbg=Serial,lvl=OOM,wipe=none,baud=115200"
 }

@@ -23,10 +23,12 @@ public:
     String getTime() const { return String(_timeClient.getFormattedTime()); }
     bool areSensorsOK() const { return _devices.areSensorsOK(); }
     String getBootupTime();
+    void printTime(); /// Prints the current internal time since boot on the serial
 
     void setRelay(bool on, unsigned long delay);
 
     WioGreenhouseDeviceMgr& getDevices() { return _devices; }
+    static WioGreenhouseApp& getApp() { return _singleton; }
 
 private:
     void initWifi();
