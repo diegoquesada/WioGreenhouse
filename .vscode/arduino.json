@@ -3,5 +3,5 @@
     "port": "COM5",
     "sketch": "WioGreenhouse.ino",
     "output": "../../build/WioGreenhouse",
-    "configuration": "xtal=80,vt=flash,exception=enabled,stacksmash=enabled,ssl=all,mmu=3232,non32xfer=fast,eesz=4M2M,ip=lm2f,dbg=Serial,lvl=OOM,wipe=none,baud=115200"
+    "configuration": "xtal=80,vt=flash,exception=disabled,stacksmash=disabled,ssl=all,mmu=3232,non32xfer=fast,eesz=4M2M,ip=lm2f,dbg=Serial,lvl=CORE,wipe=none,baud=115200"
 }

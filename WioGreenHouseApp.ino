@@ -255,7 +255,11 @@ void WioGreenhouseApp::updateRelay()
 void WioGreenhouseApp::setRelay(bool on, unsigned long delay)
 {
   printTime();
-  Serial.println(String("setRelay(") + on + String(", ") + delay + ")");
+  Serial.print("setRelay(");
+  Serial.print(on);
+  Serial.print(", ");
+  Serial.print(delay);
+  Serial.println(")");
 
   if (on)
   {

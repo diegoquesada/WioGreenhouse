@@ -28,7 +28,7 @@ public:
     void setRelay(bool on, unsigned long delay);
 
     WioGreenhouseDeviceMgr& getDevices() { return _devices; }
-    static WioGreenhouseApp& getApp() { return _singleton; }
+    static WioGreenhouseApp& getApp() { return *_singleton; }
 
 private:
     void initWifi();
