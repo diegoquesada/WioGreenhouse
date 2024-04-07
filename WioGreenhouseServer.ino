@@ -8,7 +8,8 @@ bool WioGreenhouseServer::init()
   on("/", handleRoot);
   on("/status", handleStatus);
   on("/time", handleTime);
-  on("/relay", handleRelay);
+  on("/setRelay", handleRelay);
+  on("/relayTime", handleRelayTime);
   on("/sensors", handleSensors);
   
   begin();
@@ -34,6 +35,11 @@ bool WioGreenhouseServer::init()
 /*static*/ void WioGreenhouseServer::handleRelay()
 {
     _singleton->setRelay();
+}
+
+/*static*/ void WioGreenhouseServer::handleRelayTime()
+{
+  _singleton->setRelayTime();
 }
 
 /*static*/ void WioGreenhouseServer::handleSensors()
@@ -67,7 +73,7 @@ void WioGreenhouseServer::getTime()
 {
   if (method() == HTTP_GET)
   {
-    send(200, "application/json", String(_app.getTime()));
+    send(200, "application/json", String(_app.getTime()) + String("\n"));
   }
 }
 
@@ -90,14 +96,23 @@ void WioGreenhouseServer::setRelay()
     if (arg(0) == "yes")
     {
       _app.setRelay(true, delayValue);
-      send(200, "text/plain", String("Relay turned on for ") + delayValue + "ms.\n");
+      send(200, "text/plain", String("Relay turned on for ") + String(delayValue) + "ms.\n");
     }
     else if (arg(0) == "no")
     {
       _app.setRelay(false, delayValue);
-      send(200, "text/plain", String("Relay turned off for ") + delayValue + "ms.\n");
+      send(200, "text/plain", String("Relay turned off for ") + String(delayValue) + "ms.\n");
+    }
+    else
+    {
+      send(400, "text/plain", String("Relay status not specified or invalid\n"));
     }
   }
+}
+
+void WioGreenhouseServer::setRelayTime()
+{
+
 }
 
 void WioGreenhouseServer::getSensors()

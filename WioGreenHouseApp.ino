@@ -10,10 +10,11 @@
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
-const int relayPin = 13;
+const int relayPin1 = 12;
+const int relayPin2 = 13;
 const int enablePin = 15; // Enable power to other pins
 
-const char versionString[] = "WioGreenhouse 0.5";
+const char versionString[] = "WioGreenhouse 0.6";
 
 IPAddress mqttServer(10,0,0,42);
 const uint16_t mqttPort = 1883;
@@ -41,13 +42,15 @@ void WioGreenhouseApp::setup()
 {
   pinMode(enablePin, OUTPUT);
   pinMode(ledPin, OUTPUT);
-  pinMode(relayPin, OUTPUT);
+  pinMode(relayPin1, OUTPUT);
+  pinMode(relayPin2, OUTPUT);
   digitalWrite(enablePin, HIGH); // Enable power to Grove connectors
-  digitalWrite(relayPin, LOW); // Turn relay off
+  digitalWrite(relayPin1, LOW); // Turn relay off
+  digitalWrite(relayPin2, LOW); // Turn relay off
 
   _devices.setup();
 
-  Serial.begin(74880);
+  Serial.begin(115200); // baud rate to match the Wio's bootloader
   delay(500); // allow serial port time to connect
 
   Serial.println(versionString);
@@ -157,14 +160,17 @@ void WioGreenhouseApp::loop()
     pushUpdate();
   }
 
-  if (sensorsUpdate != 2) // update time and relay as frequently as we poll sensors
+  if (sensorsUpdate != 2) // update time as frequently as we poll sensors
   {
     _timeClient.update();
     if (_bootupTime == 0 && _timeClient.isTimeSet())
     {
       _bootupTime = _timeClient.getEpochTime();
     }
+  }
 
+  if (sensorsUpdate != 2 || _relayOverride != 0) // update relay if we updated sensors, or have been overridden
+  {
     updateRelay();
   }
 
@@ -221,22 +227,29 @@ void WioGreenhouseApp::updateRelay()
     Serial.println("Relay override has expired, setting back.");
   }
 
+  bool prevRelayState = _relayState;
+
   if (_relayOverride != 0) // Check again, might have expired above.
   {
-    _relayState = (_relayOverride == 1);
+    _relayState = (_relayOverride == 1); // 1 means overridden to on, 2 means overridden to off
   }
   else
   {
-    _relayState = _timeClient.getHours() > 6 && _timeClient.getHours() < 20;
+    _relayState = _timeClient.getHours() > relay1OnTime && _timeClient.getHours() < relay1OffTime;
   }
 
-  if (_relayState)
+  if (_relayState != prevRelayState)
   {
-    digitalWrite(relayPin, HIGH);
-  }
-  else
-  {
-    digitalWrite(relayPin, LOW);
+    if (_relayState)
+    {
+      Serial.println("Turning relay 1 ON");
+      digitalWrite(relayPin1, HIGH);
+    }
+    else
+    {
+      Serial.println("Turning relay 1 OFF");
+      digitalWrite(relayPin1, LOW);
+    }
   }
 }
 

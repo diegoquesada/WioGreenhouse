@@ -1,7 +1,7 @@
 # WioGreenhouse
 
 A WioLink ESP8266 project to monitor and control a small greenhouse.
-Copyright 2022 Diego Quesada
+Copyright 2024 Diego Quesada
 
 ## Features
 - Controls grow lights via SPDT relay
@@ -17,6 +17,13 @@ graph TD;
    A -.-> |Wifi| E(MQTT broker)
 ```
 
+## Dependencies
+Arduino core for the ESP8266 chip: https://github.com/esp8266/Arduino
+Adafruit DHT sensor library v1.0.1: https://github.com/adafruit/DHT-sensor-library
+Arduino client for MQTT 2.8: https://github.com/knolleary/pubsubclient
+Grove Digital Light Sensor v1.0.0: https://github.com/Seeed-Studio/Grove_Digital_Light_Sensor
+NTPCilent v3.2.1: https://github.com/arduino-libraries/NTPClient
+
 ## Future improvements
 - Use mDNS/DNS-SD to obtain MQTT server address
 - Replace the DHT11 temp/humidity sensor with BME680
@@ -30,8 +37,4 @@ graph TD;
 - Implement basic HomeKit support
 
 ## References
-https://github.com/esp8266/Arduino
-https://github.com/adafruit/DHT-sensor-library
-https://github.com/Seeed-Studio/Grove_Digital_Light_Sensor
 https://github.com/me-no-dev/EspExceptionDecoder
-https://github.com/arduino-libraries/NTPClient

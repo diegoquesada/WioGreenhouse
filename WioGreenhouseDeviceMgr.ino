@@ -62,11 +62,11 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
   
     _updateTimer.Reset();
 
-    return _sensorsOK;
+    return _sensorsOK; // Return success=1 or failure=9
   }
   else
   {
-    return 2;
+    return 2; // A return value of 2 means we didn't update the sensors
   }
 }
 

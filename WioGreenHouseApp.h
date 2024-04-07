@@ -2,7 +2,7 @@
 
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
-#include "DHT.h"
+#include <DHT.h>
 #include <PubSubClient.h>
 #include <NTPClient.h>
 #include "WioGreenhouseDeviceMgr.h"
@@ -49,8 +49,10 @@ private:
     unsigned long _bootupTime = 0; /// Set to 0 by default, will be initialized in loop()
 
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
-    unsigned short _relayOverride = 0; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
+    unsigned char _relayOverride = 0; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
     TimerCounter _relayTimer = 0; /// When the override was set
+    unsigned char relay1OnTime = 6;
+    unsigned char relay1OffTime = 20;
 
     WiFiClient _wifiClient;
 
