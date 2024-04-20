@@ -17,12 +17,14 @@ private:
     static void handleStatus();
     static void handleTime();
     static void handleRelay();
+    static void handleRelayTime();
     static void handleSensors();
 
     void getHomepage();
     void getStatus();
     void getTime();
     void setRelay();
+    void setRelayTime();
     void getSensors();
 
 private:
