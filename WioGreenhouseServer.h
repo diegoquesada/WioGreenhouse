@@ -18,6 +18,7 @@ private:
     static void handleTime();
     static void handleRelay();
     static void handleRelayTime();
+    static void handleSensorUpdateInterval();
     static void handleSensors();
 
     void getHomepage();
@@ -25,6 +26,7 @@ private:
     void getTime();
     void setRelay();
     void setRelayTime();
+    void setSensorUpdateInterval();
     void getSensors();
 
 private:

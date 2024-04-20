@@ -10,6 +10,7 @@ bool WioGreenhouseServer::init()
   on("/time", handleTime);
   on("/setRelay", handleRelay);
   on("/relayTime", handleRelayTime);
+  on("/sensorUpdateInterval", handleSensorUpdateInterval);
   on("/sensors", handleSensors);
   
   begin();
@@ -40,6 +41,11 @@ bool WioGreenhouseServer::init()
 /*static*/ void WioGreenhouseServer::handleRelayTime()
 {
   _singleton->setRelayTime();
+}
+
+/*static*/ void WioGreenhouseServer::handleSensorUpdateInterval()
+{
+
 }
 
 /*static*/ void WioGreenhouseServer::handleSensors()
@@ -111,6 +117,11 @@ void WioGreenhouseServer::setRelay()
 }
 
 void WioGreenhouseServer::setRelayTime()
+{
+
+}
+
+void WioGreenhouseServer::setSensorUpdateInterval()
 {
 
 }

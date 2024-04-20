@@ -19,9 +19,9 @@ WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
 
 void WioGreenhouseDeviceMgr::setup()
 {
-  Wire.begin();
   _dht.begin();
 
+  Wire.begin();
   TSL2561.init();
 }
 
@@ -51,7 +51,9 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
       Serial.print(_temp_hum_val[1]);
       Serial.print(" *C\tLux: ");
       Serial.println(_lux);
-  
+
+      _updateTimer.Dump();
+
       _sensorsOK = true;
     }
     else

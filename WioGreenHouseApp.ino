@@ -12,7 +12,7 @@
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
 const int relayPin1 = 12;
 const int relayPin2 = 13;
-const int enablePin = 15; // Enable power to other pins
+const int enablePin = PIN_GROVE_POWER; // Enable power to other pins
 
 const char versionString[] = "WioGreenhouse 0.6";
 
