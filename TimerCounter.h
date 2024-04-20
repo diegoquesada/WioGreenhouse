@@ -13,6 +13,7 @@ class TimerCounter
 {
 public:
     TimerCounter(unsigned long delay) : _delay(delay) { }
+    unsigned long getDelay() const { return _delay; }
     void setDelay(unsigned long delay) { _delay = delay; }
     bool IsItTime()
     {

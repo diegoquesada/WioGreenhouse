@@ -45,7 +45,7 @@ bool WioGreenhouseServer::init()
 
 /*static*/ void WioGreenhouseServer::handleSensorUpdateInterval()
 {
-
+  _singleton->setSensorUpdateInterval();
 }
 
 /*static*/ void WioGreenhouseServer::handleSensors()
@@ -71,7 +71,8 @@ void WioGreenhouseServer::getStatus()
       String( "\n  \"sensorsOK\": ")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
       String( "\n  \"relayOn\":")          + String(_app.isRelayOn() ? "true, " : "false, ") +
       String( "\n  \"relayOverride\":")    + String(_app.getRelayOverride() ? "true, " : "false, ") +
-      String( "\n  \"bootupTime\":")       + String(_app.getBootupTime()) + "\n}\n");
+      String( "\n  \"bootupTime\":")       + String(_app.getBootupTime()) + 
+      String( "\n  \"sensorsInterval\":")  + String(_app.getDevices().getUpdateInterval()) + "\n}\n");
   }
 }
 
@@ -102,17 +103,21 @@ void WioGreenhouseServer::setRelay()
     if (arg(0) == "yes")
     {
       _app.setRelay(true, delayValue);
-      send(200, "text/plain", String("Relay turned on for ") + String(delayValue) + "ms.\n");
+      send(200, "text/plain", String("Relay turned on for ") + String(delayValue) + " ms.\n");
     }
     else if (arg(0) == "no")
     {
       _app.setRelay(false, delayValue);
-      send(200, "text/plain", String("Relay turned off for ") + String(delayValue) + "ms.\n");
+      send(200, "text/plain", String("Relay turned off for ") + String(delayValue) + " ms.\n");
     }
     else
     {
       send(400, "text/plain", String("Relay status not specified or invalid\n"));
     }
+  }
+  else
+  {
+    send(400, "text/plain", String("Relay status not specified or invalid\n"));
   }
 }
 
@@ -123,7 +128,29 @@ void WioGreenhouseServer::setRelayTime()
 
 void WioGreenhouseServer::setSensorUpdateInterval()
 {
-
+  if (method() != HTTP_POST)
+  {
+    send(405, "text/plain", "Method Not Allowed");
+  }
+  
+  if (argName(0) == "time")
+  {
+    long sensorInterval = arg(0).toInt();
+    if (sensorInterval > 5 * 1000 && sensorInterval < 30 * 60 * 1000)
+    {
+      Serial.println("Setting sensors interval to " + String(sensorInterval) + " ms");
+      _app.getDevices().setUpdateInterval(arg(0).toInt());
+      send(200, "text/plain", String("Sensors interval set to ") + String(sensorInterval) + " ms.\n");
+    }
+    else
+    {
+      send(400, "text/plain", String("Sensors interval invalid.\n"));
+    }
+  }
+  else
+  {
+    send(400, "text/plain", String("Sensors interval invalid.\n"));
+  }
 }
 
 void WioGreenhouseServer::getSensors()

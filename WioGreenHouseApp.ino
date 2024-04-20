@@ -14,7 +14,7 @@ const int relayPin1 = 12;
 const int relayPin2 = 13;
 const int enablePin = PIN_GROVE_POWER; // Enable power to other pins
 
-const char versionString[] = "WioGreenhouse 0.6";
+const char versionString[] = "WioGreenhouse 0.7";
 
 IPAddress mqttServer(10,0,0,42);
 const uint16_t mqttPort = 1883;

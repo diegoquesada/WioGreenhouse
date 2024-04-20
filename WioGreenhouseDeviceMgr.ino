@@ -52,8 +52,6 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
       Serial.print(" *C\tLux: ");
       Serial.println(_lux);
 
-      _updateTimer.Dump();
-
       _sensorsOK = true;
     }
     else
