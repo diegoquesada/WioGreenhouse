@@ -10,20 +10,18 @@
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
-const int relayPin1 = 12;
-const int relayPin2 = 13;
+const int relayPin1 = 14;
+const int relayPin2 = 12;
 const int enablePin = PIN_GROVE_POWER; // Enable power to other pins
 
 const char versionString[] = "WioGreenhouse 0.7";
 
-IPAddress mqttServer(10,0,0,42);
+IPAddress mqttServer(192,168,1,73);
 const uint16_t mqttPort = 1883;
 const char *tempTopic = "sensors/greenhouse/temperature";
 const char *humidityTopic = "sensors/greenhouse/humidity";
 const char *lightTopic = "sensors/greenhouse/light";
 const char *clientID = "wioclient1";
-const char *mqttUserName = "wiolink1";
-const char *mqttPassword = "elendil";
 
 
 /*static*/ WioGreenhouseApp *WioGreenhouseApp::_singleton = nullptr;
@@ -93,7 +91,7 @@ void WioGreenhouseApp::initWifi()
  */
 bool WioGreenhouseApp::connectMQTT()
 {
-  if (!_pubSubClient.connected() && _pubSubTimer.IsItTime())
+  if (!_pubSubClient.connected() /*&& _pubSubTimer.IsItTime()*/)
   {
     printTime();
     Serial.println("Attempting to connect to MQTT.");
@@ -109,7 +107,7 @@ bool WioGreenhouseApp::connectMQTT()
       Serial.println(_pubSubClient.state());
     }
 
-    _pubSubTimer.Reset();
+    //_pubSubTimer.Reset();
   }
 
   if (_pubSubClient.connected())

@@ -14,7 +14,7 @@ public:
     void setup();
     unsigned char updateSensors();
     unsigned long getUpdateInterval() const { return _updateTimer.getDelay(); }
-    void setUpdateInterval(unsigned long interval); /// Changes the frequency of sensor updates
+    bool setUpdateInterval(unsigned long interval); /// Changes the frequency of sensor updates
 
     bool areSensorsOK() const { return _sensorsOK; }
 

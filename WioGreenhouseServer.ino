@@ -136,11 +136,17 @@ void WioGreenhouseServer::setSensorUpdateInterval()
   if (argName(0) == "time")
   {
     long sensorInterval = arg(0).toInt();
-    if (sensorInterval > 5 * 1000 && sensorInterval < 30 * 60 * 1000)
+    if (sensorInterval >= 5 * 1000 && sensorInterval <= 60 * 60 * 1000)
     {
-      Serial.println("Setting sensors interval to " + String(sensorInterval) + " ms");
-      _app.getDevices().setUpdateInterval(arg(0).toInt());
-      send(200, "text/plain", String("Sensors interval set to ") + String(sensorInterval) + " ms.\n");
+      if ( _app.getDevices().setUpdateInterval(arg(0).toInt()) )
+      {
+        Serial.println("Setting sensors interval to " + String(sensorInterval) + " ms");
+        send(200, "text/plain", String("Sensors interval set to ") + String(sensorInterval) + " ms.\n");
+      }
+      else
+      {
+        send(400, "text/plain", String("Unable to set sensors interval.\n"));
+      }
     }
     else
     {
