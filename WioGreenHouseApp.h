@@ -57,8 +57,8 @@ private:
     WiFiClient _wifiClient;
 
     PubSubClient _pubSubClient;
-    const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
-    TimerCounter _pubSubTimer;
+//    const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
+//    TimerCounter _pubSubTimer;
 
     WiFiUDP _ntpUDP;
     const int timeOffset = -4 * 60 * 60; // 5 hours offset (in seconds) during DST
