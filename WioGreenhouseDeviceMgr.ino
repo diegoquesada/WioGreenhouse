@@ -5,7 +5,7 @@
 */
 
 #include "WioGreenhouseDeviceMgr.h"
-#include "WioGreenHouseApp.h"
+#include "WioGreenhouseApp.h"
 #include <Digital_Light_TSL2561.h>
 
 const int dhtPin = 14;

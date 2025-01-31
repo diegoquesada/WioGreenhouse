@@ -4,7 +4,7 @@
  * (c) Diego Quesada
  */
 
-#include "WioGreenHouseApp.h"
+#include "WioGreenhouseApp.h"
 #include <ESP8266WiFi.h>
 #include "PubSubClient.h"
 #include "secrets.h"

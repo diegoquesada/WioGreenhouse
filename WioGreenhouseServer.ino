@@ -1,5 +1,5 @@
-#include "WioGreenHouseServer.h"
-#include "WioGreenHouseApp.h"
+#include "WioGreenhouseServer.h"
+#include "WioGreenhouseApp.h"
 
 /*static*/ WioGreenhouseServer *WioGreenhouseServer::_singleton = nullptr;
 

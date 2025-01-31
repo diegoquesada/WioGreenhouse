@@ -19,7 +19,7 @@ graph TD;
 
 ## Dependencies
 Arduino core for the ESP8266 chip: https://github.com/esp8266/Arduino
-Adafruit DHT sensor library v1.0.1: https://github.com/adafruit/DHT-sensor-library
+Grove Temp and Humidity sensor v2.0.2: https://github.com/Seeed-Studio/Grove_Temperature_And_Humidity_Sensor
 Arduino client for MQTT 2.8: https://github.com/knolleary/pubsubclient
 Grove Digital Light Sensor v1.0.0: https://github.com/Seeed-Studio/Grove_Digital_Light_Sensor
 NTPCilent v3.2.1: https://github.com/arduino-libraries/NTPClient
