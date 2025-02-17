@@ -1,3 +1,9 @@
+/**
+ * WioGreenhouseServer.ino
+ * HTTP server to handle status and sensor requests.
+ * (c) 2025 Diego Quesada
+*/
+
 #include "WioGreenhouseServer.h"
 #include "WioGreenhouseApp.h"
 
@@ -12,6 +18,7 @@ bool WioGreenhouseServer::init()
   on("/relayTime", handleRelayTime);
   on("/sensors", handleSensors);
   
+  enableCORS(true);
   begin();
 
   return true;
@@ -62,10 +69,12 @@ void WioGreenhouseServer::getStatus()
     send(200, "application/json",
       String("{\n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
       String( "\n  \"mqttConnected\": ") + String(_app.isMqttConnected() ? "true, " : "false, ") +
-      String( "\n  \"sensorsOK\": ")        + String(_app.areSensorsOK() ? "true, " : "false, ") + 
-      String( "\n  \"relayOn\":")          + String(_app.isRelayOn() ? "true, " : "false, ") +
-      String( "\n  \"relayOverride\":")    + String(_app.getRelayOverride() ? "true, " : "false, ") +
-      String( "\n  \"bootupTime\":")       + String(_app.getBootupTime()) + "\n}\n");
+      String( "\n  \"IP\": \"")           + String(_app.getIP() + "\",\n") +
+      String( "\n  \"MAC\": \"")           + String(_app.getMAC() + "\",\n") +
+      String( "\n  \"sensorsOK\": ")     + String(_app.areSensorsOK() ? "true, " : "false, ") + 
+      String( "\n  \"relayOn\":")        + String(_app.isRelayOn() ? "true, " : "false, ") +
+      String( "\n  \"relayOverride\":")  + String(_app.getRelayOverride() ? "true, " : "false, ") +
+      String( "\n  \"bootupTime\":\"")   + String(_app.getBootupTime()) + "\"\n}\n");
   }
 }
 

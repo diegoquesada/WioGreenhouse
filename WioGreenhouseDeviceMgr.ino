@@ -1,7 +1,7 @@
 /**
  * WioGreenhouseDeviceMgr.ino
  * Definition of WioGreenhouseDeviceMgr class.
- * (c) 2023 Diego Quesada
+ * (c) 2025 Diego Quesada
 */
 
 #include "WioGreenhouseDeviceMgr.h"
@@ -62,7 +62,7 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
   
     _updateTimer.Reset();
 
-    return _sensorsOK; // Return success=1 or failure=9
+    return _sensorsOK; // Return success=1 or failure=0
   }
   else
   {

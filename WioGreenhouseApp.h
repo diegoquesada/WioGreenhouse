@@ -18,6 +18,9 @@ public:
     String getVersionStr() const;
     bool isWifiConnected() const { return _wifiConnected; }
     bool isMqttConnected() const { return _mqttConnected; }
+    uint32_t getSerialNumber() const;
+    String getIP() const { return WiFi.localIP().toString(); }
+    String getMAC() const { return WiFi.macAddress(); }
     bool isRelayOn() const { return _relayState; }
     bool getRelayOverride() const { return _relayOverride; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
@@ -36,6 +39,8 @@ private:
     bool initHTTPServer();
     bool pushUpdate();
     void updateRelay();
+
+    void getSensorsJson(char *jsonOut) const;
 
     static void mqttCallback(char* topic, byte* payload, unsigned int length);
 
