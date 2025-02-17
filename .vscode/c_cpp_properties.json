@@ -3,7 +3,7 @@
     "configurations": [
         {
             "name": "Arduino",
-            "compilerPath": "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\bin\\xtensa-lx106-elf-g++",
+            "compilerPath": "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/bin/xtensa-lx106-elf-g++",
             "compilerArgs": [
                 "-U__STRICT_ANSI__",
                 "-free",
@@ -17,27 +17,27 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\tools\\sdk\\include",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\tools\\sdk\\lwip2\\include",
-                "C:\\Users\\diego\\Documents\\DriveJ\\Projects\\build\\WioGreenhouse\\core",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\cores\\esp8266",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\variants\\wiolink",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino\\libraries\\Grove_Temperature_And_Humidity_Sensor",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\Wire",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino\\libraries\\PubSubClient\\src",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino\\libraries\\NTPClient",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WebServer\\src",
-                "C:\\Users\\diego\\AppData\\Local\\Arduino\\libraries\\Grove_-_Digital_Light_Sensor",
-                "c:\\users\\diego\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\xtensa-lx106-elf\\include\\c++\\10.3.0",
-                "c:\\users\\diego\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\xtensa-lx106-elf\\include\\c++\\10.3.0\\xtensa-lx106-elf",
-                "c:\\users\\diego\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\xtensa-lx106-elf\\include\\c++\\10.3.0\\backward",
-                "c:\\users\\diego\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\lib\\gcc\\xtensa-lx106-elf\\10.3.0\\include",
-                "c:\\users\\diego\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\lib\\gcc\\xtensa-lx106-elf\\10.3.0\\include-fixed",
-                "c:\\users\\diego\\appdata\\local\\arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.1.0-gcc10.3-e5f9fec\\xtensa-lx106-elf\\include"
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/tools/sdk/include",
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/tools/sdk/lwip2/include",
+                "/home/diegoq/build/WioGreenhouse/core",
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/cores/esp8266",
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/variants/wiolink",
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/libraries/ESP8266WiFi/src",
+                "/home/diegoq/Arduino/libraries/Grove_Temperature_And_Humidity_Sensor",
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/libraries/Wire",
+                "/home/diegoq/Arduino/libraries/PubSubClient/src",
+                "/home/diegoq/Arduino/libraries/NTPClient",
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/libraries/ESP8266WebServer/src",
+                "/home/diegoq/Arduino/libraries/Grove_-_Digital_Light_Sensor",
+                "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0",
+                "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/xtensa-lx106-elf",
+                "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include/c++/10.3.0/backward",
+                "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/lib/gcc/xtensa-lx106-elf/10.3.0/include",
+                "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/lib/gcc/xtensa-lx106-elf/10.3.0/include-fixed",
+                "/home/diegoq/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.1.0-gcc10.3-e5f9fec/xtensa-lx106-elf/include"
             ],
             "forcedInclude": [
-                "C:\\Users\\diego\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\cores\\esp8266\\Arduino.h"
+                "/home/diegoq/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/cores/esp8266/Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++17",

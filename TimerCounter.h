@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <limits.h>
+
 /**
  * A utility that tracks the last time an event occurred.
  */

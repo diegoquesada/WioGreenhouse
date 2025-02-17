@@ -1,10 +1,10 @@
 /**
  * WioGreenhouseApp.ino
  * Implementation of the WioGreenhouseApp class.
- * (c) Diego Quesada
+ * (c) 2025 Diego Quesada
  */
 
-#include "WioGreenHouseApp.h"
+#include "WioGreenhouseApp.h"
 #include <ESP8266WiFi.h>
 #include "PubSubClient.h"
 #include "secrets.h"
@@ -14,13 +14,11 @@ const int relayPin1 = 12;
 const int relayPin2 = 13;
 const int enablePin = 15; // Enable power to other pins
 
-const char versionString[] = "WioGreenhouse 0.6";
+const char versionString[] = "WioGreenhouse 0.8";
 
-IPAddress mqttServer(10,0,0,42);
+IPAddress mqttServer(192,168,1,84);
 const uint16_t mqttPort = 1883;
-const char *tempTopic = "sensors/greenhouse/temperature";
-const char *humidityTopic = "sensors/greenhouse/humidity";
-const char *lightTopic = "sensors/greenhouse/light";
+const char *sensorsTopic = "wioLink/%x/sensors";
 const char *clientID = "wioclient1";
 const char *mqttUserName = "wiolink1";
 const char *mqttPassword = "elendil";
@@ -99,7 +97,7 @@ bool WioGreenhouseApp::connectMQTT()
     Serial.println("Attempting to connect to MQTT.");
 
     printTime();
-  if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
+    if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
     {
       Serial.println("Connected to MQTT broker");
     }
@@ -151,6 +149,13 @@ String WioGreenhouseApp::getVersionStr() const
     return (const char *)versionString;
 }
 
+uint32_t WioGreenhouseApp::getSerialNumber() const
+{
+  uint8_t mac[6];
+  wifi_get_macaddr(STATION_IF, mac);
+  return (uint32_t)mac[2] << 24 | (uint32_t)mac[3] << 16 | (uint32_t)mac[4] << 8 | mac[5];
+}
+
 void WioGreenhouseApp::loop()
 {
   // Sensors update occurs on a set interval.
@@ -182,6 +187,9 @@ void WioGreenhouseApp::loop()
  */
 bool WioGreenhouseApp::pushUpdate()
 {
+  char tempTopic[64] = { 0 };
+  char tempJson[64] = { 0 };
+
   // Make sure the MQTT client is up and running.
   if (!_pubSubClient.connected())
   {
@@ -190,19 +198,13 @@ bool WioGreenhouseApp::pushUpdate()
 
   if (_pubSubClient.connected())
   {
-    if (_pubSubClient.publish(tempTopic, String(_devices.getTemp(), 1).c_str()))
+    sprintf(tempTopic, sensorsTopic, getSerialNumber());
+    getSensorsJson(tempJson);
+    if (_pubSubClient.publish(tempTopic, tempJson))
     {
-      Serial.println("Temperature sent.");
-    }
-
-    if (_pubSubClient.publish(humidityTopic, String(_devices.getHum(), 1).c_str()))
-    {
-      Serial.println("Humidity sent.");
-    }
-
-    if (_pubSubClient.publish(lightTopic, String(_devices.getLux()).c_str()))
-    {
-      Serial.println("Lux sent.");
+      Serial.println("Sensors topic updated.");
+      Serial.println(tempTopic);
+      Serial.println(tempJson);
     }
 
     return true;
@@ -213,6 +215,13 @@ bool WioGreenhouseApp::pushUpdate()
     Serial.println("MQTT not connected.");
     return false;
   }
+}
+
+void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
+{
+  sprintf(jsonOut, 
+    "{ \"temperature\": %.2f, \"humidity\": %.2f, \"lux\": %.2f }",
+    _devices.getTemp(), _devices.getHum(), _devices.getLux() );
 }
 
 /**
