@@ -104,12 +104,12 @@ void WioGreenhouseServer::setRelay()
     
     if (arg(0) == "yes")
     {
-      _app.setRelay(true, delayValue);
+      _app.setRelay(0, true, delayValue);
       send(200, "text/plain", String("Relay turned on for ") + String(delayValue) + "ms.\n");
     }
     else if (arg(0) == "no")
     {
-      _app.setRelay(false, delayValue);
+      _app.setRelay(0, false, delayValue);
       send(200, "text/plain", String("Relay turned off for ") + String(delayValue) + "ms.\n");
     }
     else

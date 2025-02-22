@@ -28,7 +28,7 @@ public:
     String getBootupTime();
     void printTime(); /// Prints the current internal time since boot on the serial
 
-    void setRelay(bool on, unsigned long delay);
+    void setRelay(uint8_t relayIndex, bool on, unsigned long delay);
 
     WioGreenhouseDeviceMgr& getDevices() { return _devices; }
     static WioGreenhouseApp& getApp() { return *_singleton; }
@@ -37,8 +37,8 @@ private:
     void initWifi();
     bool connectMQTT();
     bool initHTTPServer();
-    bool pushUpdate();
-    void updateRelay();
+    bool pushUpdate(const char *topic, const char *json, bool retained = false);
+    void updateRelay(uint8_t relayIndex);
 
     void getSensorsJson(char *jsonOut) const;
 
@@ -49,15 +49,15 @@ private:
 
     bool _wifiConnected = false;
     bool _mqttConnected = false;
-    bool _relayState = false;
+    bool _relayState[2] = { false };
 
     unsigned long _bootupTime = 0; /// Set to 0 by default, will be initialized in loop()
 
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
-    unsigned char _relayOverride = 0; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
-    TimerCounter _relayTimer = 0; /// When the override was set
-    unsigned char relay1OnTime = 6;
-    unsigned char relay1OffTime = 20;
+    unsigned char _relayOverride[2] = { 0, 0 }; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
+    TimerCounter _relayTimer[2] = { RELAY_OVERRIDE, RELAY_OVERRIDE };
+    unsigned char relayOnTime[2] = { 6, 6 };
+    unsigned char relayOffTime[2] = { 20, 20 };
 
     WiFiClient _wifiClient;
 

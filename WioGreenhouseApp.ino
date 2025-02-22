@@ -18,7 +18,8 @@ const char versionString[] = "WioGreenhouse 0.8";
 
 IPAddress mqttServer(192,168,1,84);
 const uint16_t mqttPort = 1883;
-const char *sensorsTopic = "wioLink/%x/sensors";
+const char *sensorsTopic = "sensors";
+const char *relayTopic = "relays";
 const char *clientID = "wioclient1";
 const char *mqttUserName = "wiolink1";
 const char *mqttPassword = "elendil";
@@ -30,8 +31,7 @@ WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
     _webServer(*this),
     _timeClient(_ntpUDP, timeOffset),
-    _pubSubTimer(PUBSUB_INTERVAL),
-    _relayTimer(RELAY_OVERRIDE)
+    _pubSubTimer(PUBSUB_INTERVAL)
 {
     _singleton = this;
 }
@@ -114,6 +114,14 @@ bool WioGreenhouseApp::connectMQTT()
   {
     digitalWrite(ledPin, 1);
     _mqttConnected = true;
+
+    // Update sysInfo topic
+    char tempTopic[64] = { 0 };
+    char tempJson[64] = { 0 };
+    sprintf(tempTopic, "wioLink/%x/sysInfo", getSerialNumber());
+    sprintf(tempJson, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
+    pushUpdate(tempTopic, tempJson);
+
     return true;
   }
   else
@@ -158,11 +166,14 @@ uint32_t WioGreenhouseApp::getSerialNumber() const
 
 void WioGreenhouseApp::loop()
 {
+  char tempJson[64] = { 0 };
+
   // Sensors update occurs on a set interval.
   unsigned char sensorsUpdate = _devices.updateSensors();
   if (sensorsUpdate == 1)
   {
-    pushUpdate();
+    getSensorsJson(tempJson);
+    pushUpdate(sensorsTopic, tempJson);
   }
 
   if (sensorsUpdate != 2) // update time as frequently as we poll sensors
@@ -176,7 +187,8 @@ void WioGreenhouseApp::loop()
 
   if (sensorsUpdate != 2 || _relayOverride != 0) // update relay if we updated sensors, or have been overridden
   {
-    updateRelay();
+    updateRelay(0);
+    updateRelay(1);
   }
 
   _webServer.handleClient();
@@ -185,11 +197,8 @@ void WioGreenhouseApp::loop()
 /**
  * Uploads sensor readings to MQTT broker.
  */
-bool WioGreenhouseApp::pushUpdate()
+bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool retained) /*=false*/)
 {
-  char tempTopic[64] = { 0 };
-  char tempJson[64] = { 0 };
-
   // Make sure the MQTT client is up and running.
   if (!_pubSubClient.connected())
   {
@@ -198,13 +207,11 @@ bool WioGreenhouseApp::pushUpdate()
 
   if (_pubSubClient.connected())
   {
-    sprintf(tempTopic, sensorsTopic, getSerialNumber());
-    getSensorsJson(tempJson);
-    if (_pubSubClient.publish(tempTopic, tempJson))
+    char tempTopic[64] = { 0 };
+    sprintf(tempTopic, "wioLink/%x/%s", getSerialNumber(), topic, retained);
+    if (_pubSubClient.publish(tempTopic, json, retained))
     {
-      Serial.println("Sensors topic updated.");
-      Serial.println(tempTopic);
-      Serial.println(tempJson);
+      Serial.println("MQTT update sent.");
     }
 
     return true;
@@ -217,6 +224,9 @@ bool WioGreenhouseApp::pushUpdate()
   }
 }
 
+/**
+ * Returns a JSON string with the current sensor readings.
+ */
 void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
 {
   sprintf(jsonOut, 
@@ -225,40 +235,51 @@ void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
 }
 
 /**
- * Sets the relay on or off, as appropriate.
+ * Sets the relay on or off, and updates relays MQTT topic.
  */
-void WioGreenhouseApp::updateRelay()
+void WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 {
-  if (_relayOverride != 0 && _relayTimer.IsItTime()) // Relay has been overriden and it's time to set back.
+  char tempJson[64] = { 0 };
+
+  if ((relayIndex > 1) || (relayIndex < 0))
   {
-    _relayOverride = 0;
+    Serial.println("Invalid relay index");
+    return;
+  }
+
+  if (_relayOverride[relayIndex] != 0 && _relayTimer[relayIndex].IsItTime()) // Relay has been overriden and it's time to set back.
+  {
+    _relayOverride[relayIndex] = 0;
     printTime();
     Serial.println("Relay override has expired, setting back.");
   }
 
   bool prevRelayState = _relayState;
 
-  if (_relayOverride != 0) // Check again, might have expired above.
+  if (_relayOverride[relayIndex] != 0) // Check again, might have expired above.
   {
-    _relayState = (_relayOverride == 1); // 1 means overridden to on, 2 means overridden to off
+    _relayState[relayIndex] = (_relayOverride[relayIndex] == 1); // 1 means overridden to on, 2 means overridden to off
   }
   else
   {
-    _relayState = _timeClient.getHours() > relay1OnTime && _timeClient.getHours() < relay1OffTime;
+    _relayState[relayIndex] = _timeClient.getHours() > relayOnTime[relayIndex] && _timeClient.getHours() < relayOffTime[relayIndex];
   }
 
-  if (_relayState != prevRelayState)
+  if (_relayState[relayIndex] != prevRelayState)
   {
-    if (_relayState)
+    if (_relayState[relayIndex])
     {
-      Serial.println("Turning relay 1 ON");
+      Serial.println("Turning relay ON");
       digitalWrite(relayPin1, HIGH);
     }
     else
     {
-      Serial.println("Turning relay 1 OFF");
+      Serial.println("Turning relay OFF");
       digitalWrite(relayPin1, LOW);
     }
+
+    sprintf(tempJson, "{ \"relay1\": %d, \"relay2\": %d }", _relayState[0], _relayState[1]);
+    pushUpdate(relayTopic, tempJson);
   }
 }
 
@@ -274,8 +295,14 @@ void WioGreenhouseApp::updateRelay()
  * Sets or unsets the relay for a specified amount of time.
  * @param delay Amount of time until relay resets back, in ms. Pass 0 to leave the delay unchanged.
 */
-void WioGreenhouseApp::setRelay(bool on, unsigned long delay)
+void WioGreenhouseApp::setRelay(uint8_t relayIndex, bool on, unsigned long delay)
 {
+  if (relayIndex > 1)
+  {
+    Serial.println("Invalid relay index");
+    return;
+  }
+
   printTime();
   Serial.print("setRelay(");
   Serial.print(on);
@@ -285,15 +312,15 @@ void WioGreenhouseApp::setRelay(bool on, unsigned long delay)
 
   if (on)
   {
-    _relayOverride = 1;
-    _relayTimer.setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
-    _relayTimer.Reset();
+    _relayOverride[relayIndex] = 1;
+    _relayTimer[relayIndex].setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
+    _relayTimer[relayIndex].Reset();
   }
   else
   {
-    _relayOverride = 2;
-    _relayTimer.setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
-    _relayTimer.Reset();
+    _relayOverride[relayIndex] = 2;
+    _relayTimer[relayIndex].setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
+    _relayTimer[relayIndex].Reset();
   }
 }
 
