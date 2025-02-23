@@ -264,7 +264,7 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
     Serial.println("Relay override has expired, setting back.");
   }
 
-  bool prevRelayState = _relayState;
+  bool prevRelayState = _relayState[relayIndex];
 
   if (_relayOverride[relayIndex] != 0) // Check again, might have expired above.
   {

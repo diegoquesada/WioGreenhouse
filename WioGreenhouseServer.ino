@@ -69,11 +69,13 @@ void WioGreenhouseServer::getStatus()
     send(200, "application/json",
       String("{\n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
       String( "\n  \"mqttConnected\": ") + String(_app.isMqttConnected() ? "true, " : "false, ") +
-      String( "\n  \"IP\": \"")           + String(_app.getIP() + "\",\n") +
-      String( "\n  \"MAC\": \"")           + String(_app.getMAC() + "\",\n") +
+      String( "\n  \"IP\": \"")           + String(_app.getIP() + "\",") +
+      String( "\n  \"MAC\": \"")           + String(_app.getMAC() + "\",") +
       String( "\n  \"sensorsOK\": ")     + String(_app.areSensorsOK() ? "true, " : "false, ") + 
-      String( "\n  \"relayOn\":")        + String(_app.isRelayOn() ? "true, " : "false, ") +
-      String( "\n  \"relayOverride\":")  + String(_app.getRelayOverride() ? "true, " : "false, ") +
+      String( "\n  \"relay1On\":")        + String(_app.isRelayOn(0) ? "true, " : "false, ") +
+      String( "\n  \"relay2On\":")        + String(_app.isRelayOn(1) ? "true, " : "false, ") +
+      String( "\n  \"relay1Override\":")  + String(_app.getRelayOverride(0) ? "true, " : "false, ") +
+      String( "\n  \"relay2Override\":")  + String(_app.getRelayOverride(1) ? "true, " : "false, ") +
       String( "\n  \"bootupTime\":\"")   + String(_app.getBootupTime()) + "\"\n}\n");
   }
 }

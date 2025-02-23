@@ -21,8 +21,8 @@ public:
     uint32_t getSerialNumber() const;
     String getIP() const { return WiFi.localIP().toString(); }
     String getMAC() const { return WiFi.macAddress(); }
-    bool isRelayOn() const { return _relayState; }
-    bool getRelayOverride() const { return _relayOverride; }
+    bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
+    bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
     bool areSensorsOK() const { return _devices.areSensorsOK(); }
     String getBootupTime();
@@ -49,7 +49,7 @@ private:
 
     bool _wifiConnected = false;
     bool _mqttConnected = false;
-    bool _relayState[2] = { false };
+    bool _relayState[2] = { false, false };
 
     unsigned long _bootupTime = 0; /// Set to 0 by default, will be initialized in loop()
 
