@@ -101,15 +101,26 @@ void WioGreenhouseServer::setRelay()
       delayValue = arg("delay").toInt();
       if (delayValue < 5000) delayValue = 0; // Ignore invalid values
     }
+
+    int relayIndex = 0;
+    if (hasArg("relayIndex"))
+    {
+      relayIndex = arg("relayIndex").toInt();
+      if (relayIndex < 0 || relayIndex > 1)
+      {
+        send(400, "text/plain", String("Invalid relay index\n"));
+        return;
+      }
+    }
     
     if (arg(0) == "yes")
     {
-      _app.setRelay(0, true, delayValue);
+      _app.setRelay(relayIndex, true, delayValue);
       send(200, "text/plain", String("Relay turned on for ") + String(delayValue) + "ms.\n");
     }
     else if (arg(0) == "no")
     {
-      _app.setRelay(0, false, delayValue);
+      _app.setRelay(relayIndex, false, delayValue);
       send(200, "text/plain", String("Relay turned off for ") + String(delayValue) + "ms.\n");
     }
     else

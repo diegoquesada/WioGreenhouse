@@ -99,7 +99,7 @@ bool WioGreenhouseApp::connectMQTT()
     printTime();
     if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
     {
-      Serial.println("Connected to MQTT broker");
+      Serial.println("Connected to MQTT broker.");
     }
     else
     {
@@ -185,10 +185,17 @@ void WioGreenhouseApp::loop()
     }
   }
 
-  if (sensorsUpdate != 2 || _relayOverride != 0) // update relay if we updated sensors, or have been overridden
+  // Update relay if we updated sensors, or have been overridden
+  if (sensorsUpdate != 2 ||
+      _relayOverride[0] != 0 || _relayOverride[1] != 0)
   {
-    updateRelay(0);
-    updateRelay(1);
+    bool relay1Changed = updateRelay(0);
+    bool relay2Changed = updateRelay(1);
+    if (relay1Changed || relay2Changed)
+    {
+      sprintf(tempJson, "{ \"relay1\": %d, \"relay2\": %d }", _relayState[0], _relayState[1]);
+      pushUpdate(relayTopic, tempJson);
+    }
   }
 
   _webServer.handleClient();
@@ -197,7 +204,7 @@ void WioGreenhouseApp::loop()
 /**
  * Uploads sensor readings to MQTT broker.
  */
-bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool retained) /*=false*/)
+bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool retained /*=false*/)
 {
   // Make sure the MQTT client is up and running.
   if (!_pubSubClient.connected())
@@ -211,7 +218,8 @@ bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool reta
     sprintf(tempTopic, "wioLink/%x/%s", getSerialNumber(), topic, retained);
     if (_pubSubClient.publish(tempTopic, json, retained))
     {
-      Serial.println("MQTT update sent.");
+      printTime();
+      Serial.println("MQTT update sent for " + String(tempTopic));
     }
 
     return true;
@@ -230,24 +238,26 @@ bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool reta
 void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
 {
   sprintf(jsonOut, 
-    "{ \"temperature\": %.2f, \"humidity\": %.2f, \"lux\": %.2f }",
+    "{ \"temperature\": %.2f, \"humidity\": %.2f, \"lux\": %lu }",
     _devices.getTemp(), _devices.getHum(), _devices.getLux() );
 }
 
 /**
  * Sets the relay on or off, and updates relays MQTT topic.
+ * @return true if relay state changed, false otherwise.
  */
-void WioGreenhouseApp::updateRelay(uint8_t relayIndex)
+bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 {
   char tempJson[64] = { 0 };
 
-  if ((relayIndex > 1) || (relayIndex < 0))
+  if ((relayIndex < 0 || relayIndex > 1))
   {
     Serial.println("Invalid relay index");
-    return;
+    return false;
   }
 
-  if (_relayOverride[relayIndex] != 0 && _relayTimer[relayIndex].IsItTime()) // Relay has been overriden and it's time to set back.
+  // Relay has been overriden and it's time to set it back.
+  if (_relayOverride[relayIndex] != 0 && _relayTimer[relayIndex].IsItTime())
   {
     _relayOverride[relayIndex] = 0;
     printTime();
@@ -265,6 +275,7 @@ void WioGreenhouseApp::updateRelay(uint8_t relayIndex)
     _relayState[relayIndex] = _timeClient.getHours() > relayOnTime[relayIndex] && _timeClient.getHours() < relayOffTime[relayIndex];
   }
 
+  // If the relay state changed, set pin and push to MQTT.
   if (_relayState[relayIndex] != prevRelayState)
   {
     if (_relayState[relayIndex])
@@ -278,8 +289,11 @@ void WioGreenhouseApp::updateRelay(uint8_t relayIndex)
       digitalWrite(relayPin1, LOW);
     }
 
-    sprintf(tempJson, "{ \"relay1\": %d, \"relay2\": %d }", _relayState[0], _relayState[1]);
-    pushUpdate(relayTopic, tempJson);
+    return true;
+  }
+  else
+  {
+    return false;
   }
 }
 

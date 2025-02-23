@@ -38,7 +38,7 @@ private:
     bool connectMQTT();
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);
-    void updateRelay(uint8_t relayIndex);
+    bool updateRelay(uint8_t relayIndex);
 
     void getSensorsJson(char *jsonOut) const;
 
