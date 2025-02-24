@@ -30,7 +30,7 @@ const char *mqttPassword = "elendil";
 WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
     _webServer(*this),
-    _timeClient(_ntpUDP, timeOffset),
+    _timeClient(_ntpUDP, _timeOffset),
     _pubSubTimer(PUBSUB_INTERVAL)
 {
     _singleton = this;
@@ -54,10 +54,9 @@ void WioGreenhouseApp::setup()
   Serial.println(versionString);
   
   initWifi();
+  initTime();
   connectMQTT();
   initHTTPServer();
-
-  _timeClient.begin();
 }
 
 /**
@@ -84,6 +83,12 @@ void WioGreenhouseApp::initWifi()
   Serial.println(WiFi.localIP());
 
   _wifiConnected = true;
+}
+
+void WioGreenhouseApp::initTime()
+{
+  _timeClient.begin();
+  //TODO: correct time offset if in DST
 }
 
 /**
@@ -116,11 +121,9 @@ bool WioGreenhouseApp::connectMQTT()
     _mqttConnected = true;
 
     // Update sysInfo topic
-    char tempTopic[64] = { 0 };
     char tempJson[64] = { 0 };
-    sprintf(tempTopic, "wioLink/%x/sysInfo", getSerialNumber());
     sprintf(tempJson, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
-    pushUpdate(tempTopic, tempJson);
+    pushUpdate("sysInfo", tempJson);
 
     return true;
   }
@@ -318,11 +321,8 @@ void WioGreenhouseApp::setRelay(uint8_t relayIndex, bool on, unsigned long delay
   }
 
   printTime();
-  Serial.print("setRelay(");
-  Serial.print(on);
-  Serial.print(", ");
-  Serial.print(delay);
-  Serial.println(")");
+  Serial.println("setRelay(" + String(relayIndex) + ", " + String(on) + ", " +
+                         String((delay==0) ? RELAY_OVERRIDE : delay) + ")");
 
   if (on)
   {

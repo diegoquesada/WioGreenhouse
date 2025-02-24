@@ -35,6 +35,7 @@ public:
 
 private:
     void initWifi();
+    void initTime();
     bool connectMQTT();
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);
@@ -66,7 +67,7 @@ private:
     TimerCounter _pubSubTimer;
 
     WiFiUDP _ntpUDP;
-    const int timeOffset = -4 * 60 * 60; // 5 hours offset (in seconds) during DST
+    const int _timeOffset = -5 * 60 * 60; // 5 hours offset (in seconds) during DST
     NTPClient _timeClient;
 
     WioGreenhouseDeviceMgr _devices;
