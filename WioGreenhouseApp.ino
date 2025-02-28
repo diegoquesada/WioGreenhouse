@@ -12,8 +12,9 @@
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
 const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
+const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 0.8";
+const char versionString[] = "WioGreenhouse 0.9";
 
 IPAddress mqttServer(192,168,1,84);
 const uint16_t mqttPort = 1883;
@@ -187,7 +188,7 @@ void WioGreenhouseApp::loop()
     }
   }
 
-  // Update relay if we updated sensors, or have been overridden
+  // Update relays if we updated sensors, or have been overridden
   if (sensorsUpdate != 2 ||
       _relayOverride[0] != 0 || _relayOverride[1] != 0)
   {
@@ -246,14 +247,16 @@ void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
 
 /**
  * Sets the relay on or off, and updates relays MQTT topic.
+ * @param Index of the relay to update
  * @return true if relay state changed, false otherwise.
  */
 bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 {
   char tempJson[64] = { 0 };
 
-  if ((relayIndex < 0 || relayIndex > 1))
+  if (relayIndex >= MAX_RELAYS)
   {
+    printTime();
     Serial.println("Invalid relay index");
     return false;
   }
@@ -268,11 +271,15 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 
   bool prevRelayState = _relayState[relayIndex];
 
-  if (_relayOverride[relayIndex] != 0) // Check again, might have expired above.
+  if (_relayOverride[relayIndex] != 0) // Check override again, might have expired above.
   {
     _relayState[relayIndex] = (_relayOverride[relayIndex] == 1); // 1 means overridden to on, 2 means overridden to off
   }
-  else
+  else if (relayOnTime[relayIndex] == RELAY_ALWAYSON) // Special case for always on
+  {
+    _relayState[relayIndex] = true;
+  }
+  else // Normal case where relay is driven by time
   {
     _relayState[relayIndex] = _timeClient.getHours() > relayOnTime[relayIndex] && _timeClient.getHours() < relayOffTime[relayIndex];
   }
@@ -282,12 +289,14 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
   {
     if (_relayState[relayIndex])
     {
-      Serial.println("Turning relay ON");
+      printTime();
+      Serial.println("Turning relay " + String(relayIndex) + String(" ON"));
       digitalWrite(relayPin[relayIndex], HIGH);
     }
     else
     {
-      Serial.println("Turning relay OFF");
+      printTime();
+      Serial.println("Turning relay " + String(relayIndex) + String(" OFF"));
       digitalWrite(relayPin[relayIndex], LOW);
     }
 
@@ -313,8 +322,9 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 */
 void WioGreenhouseApp::setRelay(uint8_t relayIndex, bool on, unsigned long delay)
 {
-  if (relayIndex > 1)
+  if (relayIndex >= MAX_RELAYS)
   {
+    printTime();
     Serial.println("Invalid relay index");
     return;
   }

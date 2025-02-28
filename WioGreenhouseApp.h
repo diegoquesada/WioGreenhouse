@@ -57,8 +57,9 @@ private:
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
     unsigned char _relayOverride[2] = { 0, 0 }; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
     TimerCounter _relayTimer[2] = { RELAY_OVERRIDE, RELAY_OVERRIDE };
-    unsigned char relayOnTime[2] = { 6, 6 };
-    unsigned char relayOffTime[2] = { 20, 20 };
+    const int8_t RELAY_ALWAYSON = -1;
+    int8_t relayOnTime[2] = { RELAY_ALWAYSON, 6 }; /// Hour of the day when the relay should be on; RELAY_ALWAYSON for always on.
+    int8_t relayOffTime[2] = { RELAY_ALWAYSON, 20 }; /// Hour of the day when the relay should be off.
 
     WiFiClient _wifiClient;
 

@@ -67,9 +67,9 @@ void WioGreenhouseServer::getStatus()
   {
     Serial.println("HTTP server: request for /status.");
     send(200, "application/json",
-      String("{\n  \"version\":\"")       + String(_app.getVersionStr() + "\",") +
-      String( "\n  \"uptime\":\"")        + String(_app.getBootupTime() + "\",") +
-      String( "\n  \"time\":\"")          + String(_app.getTime() + "\",") +
+      String("{\n  \"version\":\"")      + String(_app.getVersionStr() + "\",") +
+      String( "\n  \"uptime\":\"")       + String(_app.getBootupTime() + "\",") +
+      String( "\n  \"time\":\"")         + String(_app.getTime() + "\",") +
       String( "\n  \"IP\": \"")          + String(_app.getIP() + "\",") +
       String( "\n  \"MAC\": \"")         + String(_app.getMAC() + "\",") +
       String(" \n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
