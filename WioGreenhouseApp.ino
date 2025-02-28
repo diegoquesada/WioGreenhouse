@@ -21,8 +21,6 @@ const uint16_t mqttPort = 1883;
 const char *sensorsTopic = "sensors";
 const char *relayTopic = "relays";
 const char *clientID = "wioclient1";
-const char *mqttUserName = "wiolink1";
-const char *mqttPassword = "elendil";
 
 
 /*static*/ WioGreenhouseApp *WioGreenhouseApp::_singleton = nullptr;
