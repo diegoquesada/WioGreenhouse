@@ -67,14 +67,25 @@ void WioGreenhouseServer::getStatus()
   {
     Serial.println("HTTP server: request for /status.");
     send(200, "application/json",
-      String("{\n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
+      String("{\n  \"version\":\"")      + String(_app.getVersionStr() + "\",") +
+      String( "\n  \"uptime\":\"")       + String(_app.getBootupTime() + "\",") +
+      String( "\n  \"time\":\"")         + String(_app.getTime() + "\",") +
+      String( "\n  \"IP\": \"")          + String(_app.getIP() + "\",") +
+      String( "\n  \"MAC\": \"")         + String(_app.getMAC() + "\",") +
+      String(" \n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
       String( "\n  \"mqttConnected\": ") + String(_app.isMqttConnected() ? "true, " : "false, ") +
-      String( "\n  \"IP\": \"")           + String(_app.getIP() + "\",\n") +
-      String( "\n  \"MAC\": \"")           + String(_app.getMAC() + "\",\n") +
       String( "\n  \"sensorsOK\": ")     + String(_app.areSensorsOK() ? "true, " : "false, ") + 
-      String( "\n  \"relayOn\":")        + String(_app.isRelayOn() ? "true, " : "false, ") +
-      String( "\n  \"relayOverride\":")  + String(_app.getRelayOverride() ? "true, " : "false, ") +
-      String( "\n  \"bootupTime\":\"")   + String(_app.getBootupTime()) + "\"\n}\n");
+      String( "\n  \"relays\": {") +
+      String( "\n    \"relay1\": {") +
+      String( "\n      \"on\": ")        + String(_app.isRelayOn(0) ? "true, " : "false, ") +
+      String( "\n      \"override\":" )  + String(_app.getRelayOverride(0) ? "true, " : "false, ") +
+      String( "\n    },") +
+      String( "\n    \"relay2\": {") +
+      String( "\n      \"on\": ")        + String(_app.isRelayOn(1) ? "true, " : "false, ") +
+      String( "\n      \"override\": ")  + String(_app.getRelayOverride(1) ? "true, " : "false, ") +
+      String( "\n    }") +
+      String( "\n  },") +
+      String( "\n}"));
   }
 }
 
@@ -91,6 +102,7 @@ void WioGreenhouseServer::setRelay()
   if (method() != HTTP_POST)
   {
     send(405, "text/plain", "Method Not Allowed");
+    Serial.println(method()==HTTP_POST ? "POST" : method()==HTTP_PUT ? "PUT" : "GET");
   }
   
   if (argName(0) == "on")
@@ -101,15 +113,26 @@ void WioGreenhouseServer::setRelay()
       delayValue = arg("delay").toInt();
       if (delayValue < 5000) delayValue = 0; // Ignore invalid values
     }
+
+    int relayIndex = 0;
+    if (hasArg("relayIndex"))
+    {
+      relayIndex = arg("relayIndex").toInt();
+      if (relayIndex < 0 || relayIndex > 1)
+      {
+        send(400, "text/plain", String("Invalid relay index\n"));
+        return;
+      }
+    }
     
     if (arg(0) == "yes")
     {
-      _app.setRelay(true, delayValue);
+      _app.setRelay(relayIndex, true, delayValue);
       send(200, "text/plain", String("Relay turned on for ") + String(delayValue) + "ms.\n");
     }
     else if (arg(0) == "no")
     {
-      _app.setRelay(false, delayValue);
+      _app.setRelay(relayIndex, false, delayValue);
       send(200, "text/plain", String("Relay turned off for ") + String(delayValue) + "ms.\n");
     }
     else
