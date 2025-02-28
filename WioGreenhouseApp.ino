@@ -10,8 +10,7 @@
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
-const int relayPin1 = 12;
-const int relayPin2 = 13;
+const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 
 const char versionString[] = "WioGreenhouse 0.8";
@@ -40,11 +39,11 @@ void WioGreenhouseApp::setup()
 {
   pinMode(enablePin, OUTPUT);
   pinMode(ledPin, OUTPUT);
-  pinMode(relayPin1, OUTPUT);
-  pinMode(relayPin2, OUTPUT);
+  pinMode(relayPin[0], OUTPUT);
+  pinMode(relayPin[1], OUTPUT);
   digitalWrite(enablePin, HIGH); // Enable power to Grove connectors
-  digitalWrite(relayPin1, LOW); // Turn relay off
-  digitalWrite(relayPin2, LOW); // Turn relay off
+  digitalWrite(relayPin[0], LOW); // Turn relay off
+  digitalWrite(relayPin[1], LOW); // Turn relay off
 
   _devices.setup();
 
@@ -284,12 +283,12 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
     if (_relayState[relayIndex])
     {
       Serial.println("Turning relay ON");
-      digitalWrite(relayPin1, HIGH);
+      digitalWrite(relayPin[relayIndex], HIGH);
     }
     else
     {
       Serial.println("Turning relay OFF");
-      digitalWrite(relayPin1, LOW);
+      digitalWrite(relayPin[relayIndex], LOW);
     }
 
     return true;
