@@ -6,6 +6,11 @@
 #pragma once
 
 #include "TimerCounter.h"
+const uint8_t SENSORS_STATUS_ERROR = 0x0;
+const uint8_t SENSORS_STATUS_TEMPHUMOK = 0x01;
+const uint8_t SENSORS_STATUS_LIGHTOK   = 0x02;
+const uint8_t SENSORS_OK = SENSORS_STATUS_TEMPHUMOK | SENSORS_STATUS_LIGHTOK;
+
 class WioGreenhouseDeviceMgr
 {
 public:
@@ -15,7 +20,7 @@ public:
     unsigned char updateSensors();
     void setUpdateInterval(unsigned long interval); /// Changes the frequency of sensor updates
 
-    bool areSensorsOK() const { return _sensorsOK; }
+    uint8_t getSensorsStatus() const { return _sensorsStatus; }
 
     float getTemp() const { return _temp_hum_val[1]; }
     float getHum() const { return _temp_hum_val[0]; }
@@ -25,9 +30,9 @@ private:
     const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
 
     TimerCounter _updateTimer;
-    bool _sensorsOK = false;
+    uint8_t _sensorsStatus = false;
 
     DHT _dht; /// Grove digital humidity and temp sensor
     float _temp_hum_val[2] = {0}; /// Last measured temp and humidity from DHT sensor -- 0: humidity, 1: temp
-    long _lux = 0; /// Last measured lux value
+    float _lux = 0; /// Last measured lux value
 };

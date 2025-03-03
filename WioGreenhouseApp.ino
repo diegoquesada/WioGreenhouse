@@ -44,13 +44,13 @@ void WioGreenhouseApp::setup()
   digitalWrite(relayPin[0], LOW); // Turn relay off
   digitalWrite(relayPin[1], LOW); // Turn relay off
 
-  _devices.setup();
-
-  Serial.begin(115200); // baud rate to match the Wio's bootloader
+  Serial.begin(115200);
   delay(500); // allow serial port time to connect
 
   Serial.println(versionString);
   
+  _devices.setup();
+
   initWifi();
   initTime();
   connectMQTT();
@@ -65,7 +65,7 @@ void WioGreenhouseApp::initWifi()
 {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  Serial.println("");
+  Serial.print("Connecting to Wifi");
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED)

@@ -6,9 +6,14 @@
 
 #include "WioGreenhouseDeviceMgr.h"
 #include "WioGreenhouseApp.h"
-#include <Digital_Light_TSL2561.h>
+//#include <Digital_Light_TSL2561.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_TSL2561_U.h>
 
 const int dhtPin = 14;
+
+Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_LOW, 12345);
 
 WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
     _updateTimer(DEFAULT_UPDATE_INTERVAL),
@@ -22,7 +27,16 @@ void WioGreenhouseDeviceMgr::setup()
   Wire.begin();
   _dht.begin();
 
-  TSL2561.init();
+  if (!tsl.begin())
+  {
+    Serial.println("TSL2561 not found.");
+  }
+  else
+  {
+    tsl.setGain(TSL2561_GAIN_1X);
+    tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);
+    Serial.println("Found TSL2561 sensor.");
+  }
 }
 
 //--------------------------------------------------------------------------------
@@ -35,7 +49,7 @@ void WioGreenhouseDeviceMgr::setup()
  *         1 if all sensors were retrieved successfully
  *         2 if it is not yet time to update
  */
-unsigned char WioGreenhouseDeviceMgr::updateSensors()
+uint8_t WioGreenhouseDeviceMgr::updateSensors()
 {
   if (_updateTimer.IsItTime())
   {
@@ -43,7 +57,20 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
 
     if (!_dht.readTempAndHumidity(_temp_hum_val))
     {
-      _lux = TSL2561.readVisibleLux();
+      _sensorsStatus = SENSORS_STATUS_TEMPHUMOK;
+
+      sensors_event_t event;
+      tsl.getEvent(&event);
+      if (event.light)
+      {
+        _lux = event.light;
+        _sensorsStatus |= SENSORS_STATUS_LIGHTOK;
+      }
+      else
+      {
+        _lux = 0.0;
+        Serial.println("Sensor overload");
+      }
       
       Serial.print("Humidity: ");
       Serial.print(_temp_hum_val[0]);
@@ -51,18 +78,16 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
       Serial.print(_temp_hum_val[1]);
       Serial.print(" *C\tLux: ");
       Serial.println(_lux);
-  
-      _sensorsOK = true;
     }
     else
     {
       Serial.println("Failed to get temperature and humidity.");
-      _sensorsOK = false;
+      _sensorsStatus = SENSORS_STATUS_ERROR;
     }
   
     _updateTimer.Reset();
 
-    return _sensorsOK; // Return success=1 or failure=0
+    return (_sensorsStatus != SENSORS_STATUS_ERROR); // Return success=1 or failure=0
   }
   else
   {

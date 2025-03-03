@@ -24,7 +24,7 @@ public:
     bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
     bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     String getTime() const { return String(_timeClient.getFormattedTime()); }
-    bool areSensorsOK() const { return _devices.areSensorsOK(); }
+    uint8_t getSensorsStatus() const { return _devices.getSensorsStatus(); }
     String getBootupTime();
     void printTime(); /// Prints the current internal time since boot on the serial
 
