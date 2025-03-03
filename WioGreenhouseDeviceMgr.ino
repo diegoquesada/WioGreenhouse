@@ -27,13 +27,6 @@ void WioGreenhouseDeviceMgr::setup()
   Wire.begin();
   _dht.begin();
 
-/*  uint8_t x = TSL2561.readRegister(TSL2561_Address, 0x0A);
-  if (x & 0x05) {
-    Serial.println("TSL2561 not found.");
-  }
-
-  TSL2561.init();*/
-
   if (!tsl.begin())
   {
     Serial.println("TSL2561 not found.");
@@ -56,7 +49,7 @@ void WioGreenhouseDeviceMgr::setup()
  *         1 if all sensors were retrieved successfully
  *         2 if it is not yet time to update
  */
-unsigned char WioGreenhouseDeviceMgr::updateSensors()
+uint8_t WioGreenhouseDeviceMgr::updateSensors()
 {
   if (_updateTimer.IsItTime())
   {
@@ -64,16 +57,18 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
 
     if (!_dht.readTempAndHumidity(_temp_hum_val))
     {
-//      _lux = TSL2561.readVisibleLux();
+      _sensorsStatus = SENSORS_STATUS_TEMPHUMOK;
+
       sensors_event_t event;
       tsl.getEvent(&event);
       if (event.light)
       {
         _lux = event.light;
+        _sensorsStatus |= SENSORS_STATUS_LIGHTOK;
       }
       else
       {
-        _lux = 0;
+        _lux = 0.0;
         Serial.println("Sensor overload");
       }
       
@@ -83,18 +78,16 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
       Serial.print(_temp_hum_val[1]);
       Serial.print(" *C\tLux: ");
       Serial.println(_lux);
-  
-      _sensorsOK = true;
     }
     else
     {
       Serial.println("Failed to get temperature and humidity.");
-      _sensorsOK = false;
+      _sensorsStatus = SENSORS_STATUS_ERROR;
     }
   
     _updateTimer.Reset();
 
-    return _sensorsOK; // Return success=1 or failure=0
+    return (_sensorsStatus != SENSORS_STATUS_ERROR); // Return success=1 or failure=0
   }
   else
   {

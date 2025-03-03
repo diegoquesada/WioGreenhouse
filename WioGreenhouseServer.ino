@@ -74,7 +74,7 @@ void WioGreenhouseServer::getStatus()
       String( "\n  \"MAC\": \"")         + String(_app.getMAC() + "\",") +
       String(" \n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
       String( "\n  \"mqttConnected\": ") + String(_app.isMqttConnected() ? "true, " : "false, ") +
-      String( "\n  \"sensorsOK\": ")     + String(_app.areSensorsOK() ? "true, " : "false, ") + 
+      String( "\n  \"sensorsStatus\": ") + String(_app.getSensorsStatus()) +  "," +
       String( "\n  \"relays\": {") +
       String( "\n    \"relay1\": {") +
       String( "\n      \"on\": ")        + String(_app.isRelayOn(0) ? "true, " : "false, ") +
