@@ -6,9 +6,14 @@
 
 #include "WioGreenhouseDeviceMgr.h"
 #include "WioGreenhouseApp.h"
-#include <Digital_Light_TSL2561.h>
+//#include <Digital_Light_TSL2561.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_TSL2561_U.h>
 
 const int dhtPin = 14;
+
+Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_LOW, 12345);
 
 WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
     _updateTimer(DEFAULT_UPDATE_INTERVAL),
@@ -22,7 +27,23 @@ void WioGreenhouseDeviceMgr::setup()
   Wire.begin();
   _dht.begin();
 
-  TSL2561.init();
+/*  uint8_t x = TSL2561.readRegister(TSL2561_Address, 0x0A);
+  if (x & 0x05) {
+    Serial.println("TSL2561 not found.");
+  }
+
+  TSL2561.init();*/
+
+  if (!tsl.begin())
+  {
+    Serial.println("TSL2561 not found.");
+  }
+  else
+  {
+    tsl.setGain(TSL2561_GAIN_1X);
+    tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);
+    Serial.println("Found TSL2561 sensor.");
+  }
 }
 
 //--------------------------------------------------------------------------------
@@ -43,7 +64,18 @@ unsigned char WioGreenhouseDeviceMgr::updateSensors()
 
     if (!_dht.readTempAndHumidity(_temp_hum_val))
     {
-      _lux = TSL2561.readVisibleLux();
+//      _lux = TSL2561.readVisibleLux();
+      sensors_event_t event;
+      tsl.getEvent(&event);
+      if (event.light)
+      {
+        _lux = event.light;
+      }
+      else
+      {
+        _lux = 0;
+        Serial.println("Sensor overload");
+      }
       
       Serial.print("Humidity: ");
       Serial.print(_temp_hum_val[0]);
