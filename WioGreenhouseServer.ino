@@ -13,6 +13,7 @@ bool WioGreenhouseServer::init()
 {
   on("/", handleRoot);
   on("/status", handleStatus);
+  on("/date", handleDate);
   on("/time", handleTime);
   on("/setRelay", handleRelay);
   on("/relayTime", handleRelayTime);
@@ -32,6 +33,11 @@ bool WioGreenhouseServer::init()
 /*static*/ void WioGreenhouseServer::handleStatus()
 {
     _singleton->getStatus();
+}
+
+/*static*/ void WioGreenhouseServer::handleDate()
+{
+    _singleton->getDate();
 }
 
 /*static*/ void WioGreenhouseServer::handleTime()
@@ -86,6 +92,14 @@ void WioGreenhouseServer::getStatus()
       String( "\n    }") +
       String( "\n  },") +
       String( "\n}"));
+  }
+}
+
+void WioGreenhouseServer::getDate()
+{
+  if (method() == HTTP_GET)
+  {
+    send(200, "application/json", String(_app.getDate()) + String("\n"));
   }
 }
 

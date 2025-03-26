@@ -17,7 +17,7 @@ public:
     WioGreenhouseDeviceMgr();
 
     void setup();
-    unsigned char updateSensors();
+    uint8_t updateSensors();
     void setUpdateInterval(unsigned long interval); /// Changes the frequency of sensor updates
 
     uint8_t getSensorsStatus() const { return _sensorsStatus; }

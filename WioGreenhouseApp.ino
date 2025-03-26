@@ -7,6 +7,7 @@
 #include "WioGreenhouseApp.h"
 #include <ESP8266WiFi.h>
 #include "PubSubClient.h"
+#include <time.h>
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
@@ -14,7 +15,7 @@ const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 0.9";
+const char versionString[] = "WioGreenhouse 0.10";
 
 IPAddress mqttServer(192,168,1,84);
 const uint16_t mqttPort = 1883;
@@ -22,13 +23,16 @@ const char *sensorsTopic = "sensors";
 const char *relayTopic = "relays";
 const char *clientID = "wioclient1";
 
+const int stdTimeOffset = -5 * 60 * 60; // 5 hours offset (in seconds) standard time
+const int dstTimeOffset = -4 * 60 * 60; // 4 hours offset (in seconds) daylight savings time
+
 
 /*static*/ WioGreenhouseApp *WioGreenhouseApp::_singleton = nullptr;
 
 WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
     _webServer(*this),
-    _timeClient(_ntpUDP, _timeOffset),
+    _timeClient(_ntpUDP, stdTimeOffset),
     _pubSubTimer(PUBSUB_INTERVAL)
 {
     _singleton = this;
@@ -50,9 +54,9 @@ void WioGreenhouseApp::setup()
   Serial.println(versionString);
   
   _devices.setup();
+  _timeClient.begin();
 
   initWifi();
-  initTime();
   connectMQTT();
   initHTTPServer();
 }
@@ -81,12 +85,6 @@ void WioGreenhouseApp::initWifi()
   Serial.println(WiFi.localIP());
 
   _wifiConnected = true;
-}
-
-void WioGreenhouseApp::initTime()
-{
-  _timeClient.begin();
-  //TODO: correct time offset if in DST
 }
 
 /**
@@ -167,7 +165,7 @@ uint32_t WioGreenhouseApp::getSerialNumber() const
 
 void WioGreenhouseApp::loop()
 {
-  char tempJson[64] = { 0 };
+  char tempJson[80] = { 0 };
 
   // Sensors update occurs on a set interval.
   unsigned char sensorsUpdate = _devices.updateSensors();
@@ -179,7 +177,7 @@ void WioGreenhouseApp::loop()
 
   if (sensorsUpdate != 2) // update time as frequently as we poll sensors
   {
-    _timeClient.update();
+    updateTime();
     if (_bootupTime == 0 && _timeClient.isTimeSet())
     {
       _bootupTime = _timeClient.getEpochTime();
@@ -241,6 +239,31 @@ void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
   sprintf(jsonOut, 
     "{ \"temperature\": %.2f, \"humidity\": %.2f, \"lux\": %lu }",
     _devices.getTemp(), _devices.getHum(), _devices.getLux() );
+}
+
+/**
+ * Updates the internal time from NTP server.
+ */
+void WioGreenhouseApp::updateTime()
+{
+  if (_timeClient.update())
+  {
+    time_t now = _timeClient.getEpochTime();
+
+    // Apply DST if needed
+    struct tm *timeinfo = localtime(&now);
+    bool dstOn = (timeinfo->tm_mon  >  2 &&  timeinfo->tm_mon < 10) ||
+                 (timeinfo->tm_mon ==  2 && (timeinfo->tm_mday - timeinfo->tm_wday) > 7) ||
+                 (timeinfo->tm_mon == 10 && (timeinfo->tm_mday - timeinfo->tm_wday) < 7);
+    if (dstOn)
+    {
+      _timeClient.setTimeOffset(dstTimeOffset);
+    }
+    else
+    {
+      _timeClient.setTimeOffset(stdTimeOffset);
+    }
+  }
 }
 
 /**
@@ -342,6 +365,20 @@ void WioGreenhouseApp::setRelay(uint8_t relayIndex, bool on, unsigned long delay
     _relayOverride[relayIndex] = 2;
     _relayTimer[relayIndex].setDelay(delay == 0 ? RELAY_OVERRIDE : delay);
     _relayTimer[relayIndex].Reset();
+  }
+}
+
+String WioGreenhouseApp::getDate() const
+{
+  if (_timeClient.isTimeSet())
+  {
+    time_t now = _timeClient.getEpochTime();
+    struct tm *timeinfo = localtime(&now);
+    return String(asctime(timeinfo));
+  }
+  else
+  {
+    return "Time not set";
   }
 }
 

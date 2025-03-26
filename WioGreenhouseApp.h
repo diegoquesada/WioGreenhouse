@@ -23,9 +23,11 @@ public:
     String getMAC() const { return WiFi.macAddress(); }
     bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
     bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
-    String getTime() const { return String(_timeClient.getFormattedTime()); }
     uint8_t getSensorsStatus() const { return _devices.getSensorsStatus(); }
-    String getBootupTime();
+
+    String getDate() const;
+    String getTime() const { return String(_timeClient.getFormattedTime()); } /// Returns the current time in HH:MM:SS format
+    String getBootupTime(); /// Returns the time elapsed since last bootup
     void printTime(); /// Prints the current internal time since boot on the serial
 
     void setRelay(uint8_t relayIndex, bool on, unsigned long delay);
@@ -35,10 +37,10 @@ public:
 
 private:
     void initWifi();
-    void initTime();
     bool connectMQTT();
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);
+    void updateTime();
     bool updateRelay(uint8_t relayIndex);
 
     void getSensorsJson(char *jsonOut) const;
@@ -68,7 +70,6 @@ private:
     TimerCounter _pubSubTimer;
 
     WiFiUDP _ntpUDP;
-    const int _timeOffset = -5 * 60 * 60; // 5 hours offset (in seconds) during DST
     NTPClient _timeClient;
 
     WioGreenhouseDeviceMgr _devices;
