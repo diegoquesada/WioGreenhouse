@@ -4,7 +4,6 @@
 #include <WiFiUdp.h>
 #include <DHT.h>
 #include <PubSubClient.h>
-#include <NTPClient.h>
 #include "WioGreenhouseDeviceMgr.h"
 #include "WioGreenhouseServer.h"
 
@@ -26,7 +25,7 @@ public:
     uint8_t getSensorsStatus() const { return _devices.getSensorsStatus(); }
 
     String getDate() const;
-    String getTime() const { return String(_timeClient.getFormattedTime()); } /// Returns the current time in HH:MM:SS format
+    String getTime() const; /// Returns the current time in HH:MM:SS format
     String getBootupTime(); /// Returns the time elapsed since last bootup
     void printTime(); /// Prints the current internal time since boot on the serial
 
@@ -40,7 +39,6 @@ private:
     bool connectMQTT();
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);
-    void updateTime();
     bool updateRelay(uint8_t relayIndex);
 
     void getSensorsJson(char *jsonOut) const;
@@ -54,8 +52,6 @@ private:
     bool _mqttConnected = false;
     bool _relayState[2] = { false, false };
 
-    unsigned long _bootupTime = 0; /// Set to 0 by default, will be initialized in loop()
-
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
     unsigned char _relayOverride[2] = { 0, 0 }; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
     TimerCounter _relayTimer[2] = { RELAY_OVERRIDE, RELAY_OVERRIDE };
@@ -68,9 +64,6 @@ private:
     PubSubClient _pubSubClient;
     const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
     TimerCounter _pubSubTimer;
-
-    WiFiUDP _ntpUDP;
-    NTPClient _timeClient;
 
     WioGreenhouseDeviceMgr _devices;
 
