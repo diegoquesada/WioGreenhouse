@@ -15,6 +15,7 @@ public:
 private:
     static void handleRoot();
     static void handleStatus();
+    static void handleDate();
     static void handleTime();
     static void handleRelay();
     static void handleRelayTime();
@@ -22,6 +23,7 @@ private:
 
     void getHomepage();
     void getStatus();
+    void getDate();
     void getTime();
     void setRelay();
     void setRelayTime();
