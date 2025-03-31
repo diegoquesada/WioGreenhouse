@@ -24,6 +24,7 @@ public:
     bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     uint8_t getSensorsStatus() const { return _devices.getSensorsStatus(); }
 
+    String getBootReasonString() const;
     String getDate() const;
     String getTime() const; /// Returns the current time in HH:MM:SS format
     String getBootupTime(); /// Returns the time elapsed since last bootup
