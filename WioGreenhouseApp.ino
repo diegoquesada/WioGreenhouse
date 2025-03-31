@@ -51,7 +51,7 @@ void WioGreenhouseApp::setup()
   delay(500); // allow serial port time to connect
 
   Serial.println(versionString);
-  
+
   _devices.setup();
 
   configTime(MYTZ, "pool.ntp.org");
@@ -363,4 +363,15 @@ void WioGreenhouseApp::printTime()
   Serial.print("[");
   Serial.print(millis()/1000);
   Serial.print("] ");
+}
+
+String WioGreenhouseApp::getBootReasonString() const
+{
+  struct rst_info *rst_info = system_get_rst_info();
+  String reasonString = String(rst_info->reason);
+  if (rst_info->reason == REASON_EXCEPTION_RST)
+  {
+    reasonString += ", " + String(rst_info->exccause);
+  }
+  return reasonString;
 }

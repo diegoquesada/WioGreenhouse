@@ -73,22 +73,23 @@ void WioGreenhouseServer::getStatus()
   {
     Serial.println("HTTP server: request for /status.");
     send(200, "application/json",
-      String("{\n  \"version\":\"")      + String(_app.getVersionStr() + "\",") +
-      String( "\n  \"uptime\":\"")       + String(_app.getBootupTime() + "\",") +
-      String( "\n  \"time\":\"")         + String(_app.getTime() + "\",") +
-      String( "\n  \"IP\": \"")          + String(_app.getIP() + "\",") +
-      String( "\n  \"MAC\": \"")         + String(_app.getMAC() + "\",") +
-      String(" \n  \"wifiConnected\": ") + String(_app.isWifiConnected() ? "true, " : "false, ") +
-      String( "\n  \"mqttConnected\": ") + String(_app.isMqttConnected() ? "true, " : "false, ") +
+      String("{\n  \"version\":\"")      + _app.getVersionStr() + "\"," +
+      String( "\n  \"uptime\":\"")       + _app.getBootupTime() + "\"," +
+      String( "\n  \"bootReason\":\"")   + _app.getBootReasonString() + "\"," +
+      String( "\n  \"time\":\"")         + _app.getTime() + "\"," +
+      String( "\n  \"IP\": \"")          + _app.getIP() + "\"," +
+      String( "\n  \"MAC\": \"")         + _app.getMAC() + "\"," +
+      String(" \n  \"wifiConnected\": ") + (_app.isWifiConnected() ? "true, " : "false, ") +
+      String( "\n  \"mqttConnected\": ") + (_app.isMqttConnected() ? "true, " : "false, ") +
       String( "\n  \"sensorsStatus\": ") + String(_app.getSensorsStatus()) +  "," +
       String( "\n  \"relays\": {") +
       String( "\n    \"relay1\": {") +
-      String( "\n      \"on\": ")        + String(_app.isRelayOn(0) ? "true, " : "false, ") +
-      String( "\n      \"override\":" )  + String(_app.getRelayOverride(0) ? "true, " : "false, ") +
+      String( "\n      \"on\": ")        + (_app.isRelayOn(0) ? "true, " : "false, ") +
+      String( "\n      \"override\":" )  + (_app.getRelayOverride(0) ? "true, " : "false, ") +
       String( "\n    },") +
       String( "\n    \"relay2\": {") +
-      String( "\n      \"on\": ")        + String(_app.isRelayOn(1) ? "true, " : "false, ") +
-      String( "\n      \"override\": ")  + String(_app.getRelayOverride(1) ? "true, " : "false, ") +
+      String( "\n      \"on\": ")        + (_app.isRelayOn(1) ? "true, " : "false, ") +
+      String( "\n      \"override\": ")  + (_app.getRelayOverride(1) ? "true, " : "false, ") +
       String( "\n    }") +
       String( "\n  },") +
       String( "\n}"));
