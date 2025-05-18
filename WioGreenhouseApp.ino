@@ -35,6 +35,7 @@ WioGreenhouseApp::WioGreenhouseApp() :
     _pubSubTimer(PUBSUB_INTERVAL)
 {
     _singleton = this;
+    _powerSavingEnabled = true;
 }
 
 void WioGreenhouseApp::setup()
@@ -182,7 +183,9 @@ void WioGreenhouseApp::loop()
 
   if (_powerSavingEnabled)
   {
-    ESP.deepSleep(30e6);
+    printTime(); Serial.println("Going to sleep for 5 minutes.");
+    delay(500); // Allow time for the last message to be sent
+    ESP.deepSleep(5*60e6);
   }
   else
   {
