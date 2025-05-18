@@ -16,7 +16,7 @@ const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 0.10";
+const char versionString[] = "WioGreenhouse 0.11";
 
 IPAddress mqttServer(192,168,1,84);
 const uint16_t mqttPort = 1883;
@@ -41,11 +41,14 @@ void WioGreenhouseApp::setup()
 {
   pinMode(enablePin, OUTPUT);
   pinMode(ledPin, OUTPUT);
-  pinMode(relayPin[0], OUTPUT);
-  pinMode(relayPin[1], OUTPUT);
+  if (!_powerSavingEnabled) // Relays disabled in power saving mode
+  {
+    pinMode(relayPin[0], OUTPUT);
+    pinMode(relayPin[1], OUTPUT);
+    digitalWrite(relayPin[0], LOW); // Turn relay off
+    digitalWrite(relayPin[1], LOW); // Turn relay off
+  }
   digitalWrite(enablePin, HIGH); // Enable power to Grove connectors
-  digitalWrite(relayPin[0], LOW); // Turn relay off
-  digitalWrite(relayPin[1], LOW); // Turn relay off
 
   Serial.begin(115200);
   delay(500); // allow serial port time to connect
@@ -58,7 +61,11 @@ void WioGreenhouseApp::setup()
 
   initWifi();
   connectMQTT();
-  initHTTPServer();
+
+  if (!_powerSavingEnabled)
+  {
+    initHTTPServer();
+  }
 }
 
 /**
@@ -173,20 +180,27 @@ void WioGreenhouseApp::loop()
     pushUpdate(sensorsTopic, tempJson);
   }
 
-  // Update relays if we updated sensors, or have been overridden
-  if (sensorsUpdate != 2 ||
-      _relayOverride[0] != 0 || _relayOverride[1] != 0)
+  if (_powerSavingEnabled)
   {
-    bool relay1Changed = updateRelay(0);
-    bool relay2Changed = updateRelay(1);
-    if (relay1Changed || relay2Changed)
-    {
-      sprintf(tempJson, "{ \"relay1\": %d, \"relay2\": %d }", _relayState[0], _relayState[1]);
-      pushUpdate(relayTopic, tempJson);
-    }
+    ESP.deepSleep(30e6);
   }
+  else
+  {
+    // Update relays if we updated sensors, or have been overridden
+    if (sensorsUpdate != 2 ||
+        _relayOverride[0] != 0 || _relayOverride[1] != 0)
+    {
+      bool relay1Changed = updateRelay(0);
+      bool relay2Changed = updateRelay(1);
+      if (relay1Changed || relay2Changed)
+      {
+        sprintf(tempJson, "{ \"relay1\": %d, \"relay2\": %d }", _relayState[0], _relayState[1]);
+        pushUpdate(relayTopic, tempJson);
+      }
+    }
 
-  _webServer.handleClient();
+    _webServer.handleClient();
+  }
 }
 
 /**

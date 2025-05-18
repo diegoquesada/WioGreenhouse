@@ -51,6 +51,7 @@ private:
 
     bool _wifiConnected = false;
     bool _mqttConnected = false;
+    bool _powerSavingEnabled = false; /// If true, the device will go to sleep after taking and sending measurements.
     bool _relayState[2] = { false, false };
 
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
