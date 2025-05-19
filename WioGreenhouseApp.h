@@ -51,6 +51,7 @@ private:
 
     bool _wifiConnected = false;
     bool _mqttConnected = false;
+    bool _powerSavingEnabled = false; /// If true, the device will go to sleep after taking and sending measurements.
     bool _relayState[2] = { false, false };
 
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
@@ -66,6 +67,7 @@ private:
     const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
     TimerCounter _pubSubTimer;
 
+    const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
     WioGreenhouseDeviceMgr _devices;
 
     WioGreenhouseServer _webServer;

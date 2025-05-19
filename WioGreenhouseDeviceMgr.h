@@ -14,7 +14,7 @@ const uint8_t SENSORS_OK = SENSORS_STATUS_TEMPHUMOK | SENSORS_STATUS_LIGHTOK;
 class WioGreenhouseDeviceMgr
 {
 public:
-    WioGreenhouseDeviceMgr();
+    WioGreenhouseDeviceMgr(unsigned long updateInterval);
 
     void setup();
     uint8_t updateSensors();
@@ -27,8 +27,6 @@ public:
     long getLux() const { return _lux; }
 
 private:
-    const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
-
     TimerCounter _updateTimer;
     uint8_t _sensorsStatus = false;
 

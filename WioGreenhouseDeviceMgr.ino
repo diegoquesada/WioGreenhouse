@@ -15,8 +15,8 @@ const int dhtPin = 14;
 
 Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_LOW, 12345);
 
-WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr() :
-    _updateTimer(DEFAULT_UPDATE_INTERVAL),
+WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr(unsigned long updateInterval) :
+    _updateTimer(updateInterval),
     _dht(dhtPin, DHT11)
 {
 
