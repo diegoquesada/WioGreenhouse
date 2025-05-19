@@ -67,6 +67,7 @@ private:
     const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
     TimerCounter _pubSubTimer;
 
+    const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
     WioGreenhouseDeviceMgr _devices;
 
     WioGreenhouseServer _webServer;

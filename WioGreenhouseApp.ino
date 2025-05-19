@@ -30,6 +30,7 @@ const char *clientID = "wioclient1";
 /*static*/ WioGreenhouseApp *WioGreenhouseApp::_singleton = nullptr;
 
 WioGreenhouseApp::WioGreenhouseApp() :
+    _devices(DEFAULT_UPDATE_INTERVAL),
     _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
     _webServer(*this),
     _pubSubTimer(PUBSUB_INTERVAL)
@@ -184,8 +185,8 @@ void WioGreenhouseApp::loop()
   if (_powerSavingEnabled)
   {
     printTime(); Serial.println("Going to sleep for 5 minutes.");
-    delay(500); // Allow time for the last message to be sent
-    ESP.deepSleep(5*60e6);
+    delay(100); // Allow time for the last message to be sent
+    ESP.deepSleep(DEFAULT_UPDATE_INTERVAL*1000);
   }
   else
   {
