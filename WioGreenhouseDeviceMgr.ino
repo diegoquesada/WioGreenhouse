@@ -65,13 +65,14 @@ uint8_t WioGreenhouseDeviceMgr::updateSensors()
       {
         _lux = event.light;
         _sensorsStatus |= SENSORS_STATUS_LIGHTOK;
-        Serial.println("Lux sensor OK");
+        //Serial.println("Lux sensor OK");
       }
       else
       {
         _lux = 0.0;
       }
       
+      WioGreenhouseApp::getApp().printTime();
       Serial.print("Humidity: ");
       Serial.print(_temp_hum_val[0]);
       Serial.print(" %\tTemperature: ");
