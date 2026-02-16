@@ -37,6 +37,7 @@ public:
 
 private:
     void initWifi();
+    void initmDNS();
     bool connectMQTT();
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);

@@ -6,7 +6,9 @@
 
 #include "WioGreenhouseApp.h"
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include "PubSubClient.h"
+#include "mDNSResolver.h"
 #include <time.h>
 #include <TZ.h>
 #include "secrets.h"
@@ -16,9 +18,12 @@ const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 0.11";
+const char versionString[] = "WioGreenhouse 2026.1";
 
-IPAddress mqttServer(192,168,1,84);
+WiFiUDP udp;
+mDNSResolver::Resolver resolver(udp);
+
+IPAddress mqttServer(192,168,1,88);
 const uint16_t mqttPort = 1883;
 const char *sensorsTopic = "sensors";
 const char *relayTopic = "relays";
@@ -31,7 +36,7 @@ const char *clientID = "wioclient1";
 
 WioGreenhouseApp::WioGreenhouseApp() :
     _devices(DEFAULT_UPDATE_INTERVAL),
-    _pubSubClient(mqttServer, mqttPort, mqttCallback, _wifiClient),
+    _pubSubClient(_wifiClient),
     _webServer(*this),
     _pubSubTimer(PUBSUB_INTERVAL)
 {
@@ -62,6 +67,7 @@ void WioGreenhouseApp::setup()
   configTime(MYTZ, "pool.ntp.org");
 
   initWifi();
+  initmDNS();
   connectMQTT();
 
   if (!_powerSavingEnabled)
@@ -96,6 +102,40 @@ void WioGreenhouseApp::initWifi()
   _wifiConnected = true;
 }
 
+void WioGreenhouseApp::initmDNS()
+{
+  if (!MDNS.begin(WiFi.hostname()))
+  {
+    Serial.println("Failed to start MDNS responder.");
+    return;
+  }
+
+  if (!_powerSavingEnabled)
+  {
+    MDNS.addService("tcp", "tcp", 80);
+    MDNS.addService("http", "tcp", 80);
+  }
+
+  resolver.setLocalIP(WiFi.localIP());
+
+  IPAddress brokerIP = resolver.search("Claudius.local");
+  if (brokerIP != INADDR_NONE)
+  {
+    mqttServer = brokerIP;
+    _pubSubClient.setServer(mqttServer, mqttPort);
+    _pubSubClient.setCallback(mqttCallback);
+
+    printTime();
+    Serial.print("Resolved MQTT broker mDNS address to IP: ");
+    Serial.println(mqttServer);
+  }
+  else
+  {
+    printTime();
+    Serial.println("Failed to resolve mDNS address for MQTT broker, using default IP.");
+  }
+}
+
 /**
  * Connects to the MQTT broker.
  */
@@ -113,7 +153,9 @@ bool WioGreenhouseApp::connectMQTT()
     }
     else
     {
-      Serial.print("Connection to MQTT broker failed, error: ");
+      Serial.print("Connection to MQTT broker ");
+      Serial.print(mqttServer.toString());
+      Serial.print(" failed, error: ");
       Serial.println(_pubSubClient.state());
     }
 
