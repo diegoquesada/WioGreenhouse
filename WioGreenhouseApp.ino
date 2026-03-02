@@ -39,10 +39,10 @@ WioGreenhouseApp::WioGreenhouseApp() :
     _devices(DEFAULT_UPDATE_INTERVAL),
     _pubSubClient(_wifiClient),
     _webServer(*this),
-    _pubSubTimer(PUBSUB_INTERVAL)
+    _powerTimer(POWER_INTERVAL)
 {
     _singleton = this;
-    _powerSavingEnabled = true;
+    //_powerSavingEnabled = true;
 }
 
 void WioGreenhouseApp::setup()
@@ -75,6 +75,8 @@ void WioGreenhouseApp::setup()
   {
     initHTTPServer();
   }
+
+  _powerTimer.Reset();
 }
 
 /**
@@ -142,25 +144,22 @@ void WioGreenhouseApp::initmDNS()
  */
 bool WioGreenhouseApp::connectMQTT()
 {
-  if (!_pubSubClient.connected() && _pubSubTimer.IsItTime())
+  if (!_pubSubClient.connected())
   {
-    printTime();
-    Serial.println("Attempting to connect to MQTT.");
+    printTime(); Serial.println("Attempting to connect to MQTT.");
 
-    printTime();
     if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
     {
-      Serial.println("Connected to MQTT broker.");
+      printTime(); Serial.println("Connected to MQTT broker.");
     }
     else
     {
+      printTime();
       Serial.print("Connection to MQTT broker ");
       Serial.print(mqttServer.toString());
       Serial.print(" failed, error: ");
       Serial.println(_pubSubClient.state());
     }
-
-    _pubSubTimer.Reset();
   }
 
   if (_pubSubClient.connected())
@@ -230,7 +229,7 @@ void WioGreenhouseApp::loop()
 
   _pubSubClient.loop();
 
-  if (_powerSavingEnabled)
+  if (_powerSavingEnabled && _powerTimer.IsItTime())
   {
     // The following actions are not performed while in power saving mode:
     // - Relay control (relays always off)
@@ -275,16 +274,14 @@ bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool reta
     sprintf(tempTopic, "wioLink/%x/%s", getSerialNumber(), topic, retained);
     if (_pubSubClient.publish(tempTopic, json, retained))
     {
-      printTime();
-      Serial.println("MQTT update sent for " + String(tempTopic));
+      printTime(); Serial.println("MQTT update sent for " + String(tempTopic));
     }
 
     return true;
   }
   else
   {
-    printTime();
-    Serial.println("MQTT not connected.");
+    printTime(); Serial.println("MQTT not connected, no update sent.");
     return false;
   }
 }
@@ -372,8 +369,9 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
   WioGreenhouseApp& app = WioGreenhouseApp::getApp();
 
   app.printTime();
-  Serial.print("Received MQTT message on topic: ");
-  Serial.println(topic);
+  Serial.print("--- Received MQTT message on topic: ");
+  Serial.print(topic);
+  Serial.println(" ---");
   
   // Build the expected config topic: wioLink/{device_id}/config
   char expectedTopic[64] = { 0 };
@@ -408,9 +406,8 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
         if (relaysArray[i].is<int>())
         {
           int relayValue = relaysArray[i].as<int>();
-          app.printTime();
-          Serial.println("Setting relay " + String(i) + " to: " + String(relayValue));
-          //app.setRelay(i, relayValue != 0, 0);
+          app.printTime(); Serial.println("relay: " + String(i) + ", " + String(relayValue));
+          //_app.setRelay(relayIndex, relayOn, delayValue);
         }
       }
     }
@@ -420,15 +417,14 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
     {
       int lightValue = doc["light"].as<int>();
       app.printTime();
-      Serial.println("Light setting: " + String(lightValue));
+      Serial.println("light: " + String(lightValue));
     }
     
     // Read "powerSaving" value
     if (doc.containsKey("powerSaving"))
     {
-      bool powerSavingValue = doc["powerSaving"].as<bool>();
-      app.printTime();
-      Serial.println("Power saving: " + String(powerSavingValue ? "enabled" : "disabled"));
+      app._powerSavingEnabled = doc["powerSaving"].as<bool>();
+      app.printTime(); Serial.println("powerSaving: " + String(app._powerSavingEnabled ? "enabled" : "disabled"));
     }
     
     // Read "device_name" value
@@ -436,11 +432,13 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
     {
       const char* deviceName = doc["device_name"];
       app.printTime();
-      Serial.println("Device name: " + String(deviceName));
+      Serial.println("device_name: " + String(deviceName));
     }
     
     delete[] payloadStr;
   }
+
+  app.printTime(); Serial.println("------");
 }
 
 /**

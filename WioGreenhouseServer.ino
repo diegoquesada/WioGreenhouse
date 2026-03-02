@@ -112,6 +112,10 @@ void WioGreenhouseServer::getTime()
   }
 }
 
+/*
+ * Sets a relay on or off.
+ * POST /setRelay?on=yes&relayIndex=0&delay=60000
+ */
 void WioGreenhouseServer::setRelay()
 {
   if (method() != HTTP_POST)
