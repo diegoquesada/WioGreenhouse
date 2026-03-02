@@ -9,6 +9,7 @@
 #include <ESP8266mDNS.h>
 #include "PubSubClient.h"
 #include "mDNSResolver.h"
+#include <ArduinoJson.h>
 #include <time.h>
 #include <TZ.h>
 #include "secrets.h"
@@ -18,7 +19,7 @@ const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 2026.1";
+const char versionString[] = "WioGreenhouse 2026.2";
 
 WiFiUDP udp;
 mDNSResolver::Resolver resolver(udp);
@@ -168,9 +169,12 @@ bool WioGreenhouseApp::connectMQTT()
     _mqttConnected = true;
 
     // Update sysInfo topic
-    char tempJson[64] = { 0 };
-    sprintf(tempJson, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
-    pushUpdate("sysInfo", tempJson);
+    char tempBuffer[64] = { 0 };
+    sprintf(tempBuffer, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
+    pushUpdate("sysInfo", tempBuffer, true);
+
+    sprintf(tempBuffer, "wioLink/%x/config", getSerialNumber());
+    _pubSubClient.subscribe(tempBuffer);
 
     return true;
   }
@@ -224,15 +228,20 @@ void WioGreenhouseApp::loop()
     pushUpdate(sensorsTopic, tempJson);
   }
 
+  _pubSubClient.loop();
+
   if (_powerSavingEnabled)
   {
+    // The following actions are not performed while in power saving mode:
+    // - Relay control (relays always off)
+    // - HTTP server
     printTime(); Serial.println("Going to sleep for 5 minutes.");
     delay(100); // Allow time for the last message to be sent
     ESP.deepSleep(DEFAULT_UPDATE_INTERVAL*1000);
   }
   else
   {
-    // Update relays if we updated sensors, or have been overridden
+    // Update relays if we updated sensors, or have been overridden.
     if (sensorsUpdate != 2 ||
         _relayOverride[0] != 0 || _relayOverride[1] != 0)
     {
@@ -360,7 +369,78 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
  */
 /*static*/ void WioGreenhouseApp::mqttCallback(char* topic, byte* payload, unsigned int length)
 {
+  WioGreenhouseApp& app = WioGreenhouseApp::getApp();
 
+  app.printTime();
+  Serial.print("Received MQTT message on topic: ");
+  Serial.println(topic);
+  
+  // Build the expected config topic: wioLink/{device_id}/config
+  char expectedTopic[64] = { 0 };
+  sprintf(expectedTopic, "wioLink/%x/config", app.getSerialNumber());
+  
+  // Check if this is the config topic for this device
+  if (strcmp(topic, expectedTopic) == 0)
+  {
+    // Create a buffer for the payload (null-terminated)
+    char* payloadStr = new char[length + 1];
+    memcpy(payloadStr, payload, length);
+    payloadStr[length] = '\0';
+    
+    // Parse JSON payload
+    StaticJsonDocument<256> doc;
+    DeserializationError error = deserializeJson(doc, payloadStr);
+    
+    if (error)
+    {
+      app.printTime();
+      Serial.println("Failed to parse JSON config payload");
+      delete[] payloadStr;
+      return;
+    }
+    
+    // Read "relays" array
+    if (doc.containsKey("relays") && doc["relays"].is<JsonArray>())
+    {
+      JsonArray relaysArray = doc["relays"];
+      for (size_t i = 0; i < relaysArray.size() && i < MAX_RELAYS; i++)
+      {
+        if (relaysArray[i].is<int>())
+        {
+          int relayValue = relaysArray[i].as<int>();
+          app.printTime();
+          Serial.println("Setting relay " + String(i) + " to: " + String(relayValue));
+          //app.setRelay(i, relayValue != 0, 0);
+        }
+      }
+    }
+    
+    // Read "light" value
+    if (doc.containsKey("light"))
+    {
+      int lightValue = doc["light"].as<int>();
+      app.printTime();
+      Serial.println("Light setting: " + String(lightValue));
+    }
+    
+    // Read "powerSaving" value
+    if (doc.containsKey("powerSaving"))
+    {
+      bool powerSavingValue = doc["powerSaving"].as<bool>();
+      app.printTime();
+      Serial.println("Power saving: " + String(powerSavingValue ? "enabled" : "disabled"));
+    }
+    
+    // Read "device_name" value
+    if (doc.containsKey("device_name"))
+    {
+      const char* deviceName = doc["device_name"];
+      app.printTime();
+      Serial.println("Device name: " + String(deviceName));
+    }
+    
+    delete[] payloadStr;
+  }
 }
 
 /**
