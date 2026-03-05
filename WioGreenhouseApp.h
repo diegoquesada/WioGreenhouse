@@ -46,27 +46,29 @@ private:
     void getSensorsJson(char *jsonOut) const;
 
     static void mqttCallback(char* topic, byte* payload, unsigned int length);
+    void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
 
 private:
     static WioGreenhouseApp *_singleton;
 
     bool _wifiConnected = false;
     bool _mqttConnected = false;
-    bool _powerSavingEnabled = false; /// If true, the device will go to sleep after taking and sending measurements.
-    bool _relayState[2] = { false, false };
 
+    bool _powerSavingEnabled = false;   /// If true, the device will go to sleep after taking and sending measurements.
+    const unsigned long POWER_INTERVAL = 30 * 1000; /// In power saving mode, turn off after this interval
+    TimerCounter _powerTimer;
+
+    const int8_t RELAY_ALWAYSON = -1;
     const unsigned long RELAY_OVERRIDE = 60 * 60 * 1000; /// If relay overriden via API, this is how long the override will hold.
+    bool _relayState[2] = { false, false };
     unsigned char _relayOverride[2] = { 0, 0 }; /// 0 if not overridden (driven by time), 1 is override on, 2 is override off
     TimerCounter _relayTimer[2] = { RELAY_OVERRIDE, RELAY_OVERRIDE };
-    const int8_t RELAY_ALWAYSON = -1;
     int8_t relayOnTime[2] = { RELAY_ALWAYSON, 6 }; /// Hour of the day when the relay should be on; RELAY_ALWAYSON for always on.
     int8_t relayOffTime[2] = { RELAY_ALWAYSON, 20 }; /// Hour of the day when the relay should be off.
 
     WiFiClient _wifiClient;
 
     PubSubClient _pubSubClient;
-    const unsigned long PUBSUB_INTERVAL = 5 * 60 * 1000; /// If PubSub not connected, frequency of retries in ms.
-    TimerCounter _pubSubTimer;
 
     const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
     WioGreenhouseDeviceMgr _devices;

@@ -9,6 +9,7 @@
 #include <ESP8266mDNS.h>
 #include "PubSubClient.h"
 #include "mDNSResolver.h"
+#include <ArduinoJson.h>
 #include <time.h>
 #include <TZ.h>
 #include "secrets.h"
@@ -18,7 +19,7 @@ const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 2026.1";
+const char versionString[] = "WioGreenhouse 2026.2";
 
 WiFiUDP udp;
 mDNSResolver::Resolver resolver(udp);
@@ -38,10 +39,10 @@ WioGreenhouseApp::WioGreenhouseApp() :
     _devices(DEFAULT_UPDATE_INTERVAL),
     _pubSubClient(_wifiClient),
     _webServer(*this),
-    _pubSubTimer(PUBSUB_INTERVAL)
+    _powerTimer(POWER_INTERVAL)
 {
     _singleton = this;
-    _powerSavingEnabled = true;
+    //_powerSavingEnabled = true;
 }
 
 void WioGreenhouseApp::setup()
@@ -74,6 +75,8 @@ void WioGreenhouseApp::setup()
   {
     initHTTPServer();
   }
+
+  _powerTimer.Reset();
 }
 
 /**
@@ -141,25 +144,22 @@ void WioGreenhouseApp::initmDNS()
  */
 bool WioGreenhouseApp::connectMQTT()
 {
-  if (!_pubSubClient.connected() && _pubSubTimer.IsItTime())
+  if (!_pubSubClient.connected())
   {
-    printTime();
-    Serial.println("Attempting to connect to MQTT.");
+    printTime(); Serial.println("Attempting to connect to MQTT.");
 
-    printTime();
     if (_pubSubClient.connect(clientID, mqttUserName, mqttPassword))
     {
-      Serial.println("Connected to MQTT broker.");
+      printTime(); Serial.println("Connected to MQTT broker.");
     }
     else
     {
+      printTime();
       Serial.print("Connection to MQTT broker ");
       Serial.print(mqttServer.toString());
       Serial.print(" failed, error: ");
       Serial.println(_pubSubClient.state());
     }
-
-    _pubSubTimer.Reset();
   }
 
   if (_pubSubClient.connected())
@@ -168,9 +168,12 @@ bool WioGreenhouseApp::connectMQTT()
     _mqttConnected = true;
 
     // Update sysInfo topic
-    char tempJson[64] = { 0 };
-    sprintf(tempJson, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
-    pushUpdate("sysInfo", tempJson);
+    char tempBuffer[64] = { 0 };
+    sprintf(tempBuffer, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
+    pushUpdate("sysInfo", tempBuffer, true);
+
+    sprintf(tempBuffer, "wioLink/%x/config", getSerialNumber());
+    _pubSubClient.subscribe(tempBuffer);
 
     return true;
   }
@@ -224,15 +227,21 @@ void WioGreenhouseApp::loop()
     pushUpdate(sensorsTopic, tempJson);
   }
 
-  if (_powerSavingEnabled)
+  _pubSubClient.loop();
+
+  if (_powerSavingEnabled && _powerTimer.IsItTime())
   {
+    // The following actions are not performed while in power saving mode:
+    // - Relay control (relays always off)
+    // - HTTP server
     printTime(); Serial.println("Going to sleep for 5 minutes.");
     delay(100); // Allow time for the last message to be sent
     ESP.deepSleep(DEFAULT_UPDATE_INTERVAL*1000);
   }
-  else
+
+  if (!_powerSavingEnabled)
   {
-    // Update relays if we updated sensors, or have been overridden
+    // Update relays if we updated sensors, or have been overridden.
     if (sensorsUpdate != 2 ||
         _relayOverride[0] != 0 || _relayOverride[1] != 0)
     {
@@ -266,16 +275,14 @@ bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool reta
     sprintf(tempTopic, "wioLink/%x/%s", getSerialNumber(), topic, retained);
     if (_pubSubClient.publish(tempTopic, json, retained))
     {
-      printTime();
-      Serial.println("MQTT update sent for " + String(tempTopic));
+      printTime(); Serial.println("MQTT update sent for " + String(tempTopic));
     }
 
     return true;
   }
   else
   {
-    printTime();
-    Serial.println("MQTT not connected.");
+    printTime(); Serial.println("MQTT not connected, no update sent.");
     return false;
   }
 }
@@ -360,7 +367,89 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
  */
 /*static*/ void WioGreenhouseApp::mqttCallback(char* topic, byte* payload, unsigned int length)
 {
+  WioGreenhouseApp::getApp().handleMQTTMessage(topic, payload, length);
+}
 
+void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned int length)
+{
+  printTime();
+  Serial.print("--- Received MQTT message on topic: ");
+  Serial.print(topic);
+  Serial.println(" ---");
+  
+  // Build the expected config topic: wioLink/{device_id}/config
+  char expectedTopic[64] = { 0 };
+  sprintf(expectedTopic, "wioLink/%x/config", getSerialNumber());
+  
+  // Check if this is the config topic for this device
+  if (strcmp(topic, expectedTopic) != 0)
+  {
+    return;
+  }
+  
+  // Create a buffer for the payload (null-terminated)
+  char* payloadStr = new char[length + 1];
+  memcpy(payloadStr, payload, length);
+  payloadStr[length] = '\0';
+  
+  // Parse JSON payload
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, payloadStr);
+  
+  if (error)
+  {
+    printTime(); Serial.println("Failed to parse JSON config payload");
+    delete[] payloadStr;
+    return;
+  }
+
+  // Read "relays" array
+  if (doc.containsKey("relays") && doc["relays"].is<JsonArray>())
+  {
+    JsonArray relaysArray = doc["relays"];
+    for (size_t i = 0; i < relaysArray.size() && i < MAX_RELAYS; i++)
+    {
+      if (relaysArray[i].is<JsonObject>())
+      {
+        JsonObject relayConfig = relaysArray[i];
+        if (relayConfig.containsKey("on") && relayConfig["on"] == "time")
+        {
+          int timeOn = relayConfig["timeOn"].as<int>();
+          int timeOff = relayConfig["timeOff"].as<int>();
+          relayOnTime[i] = timeOn;
+          relayOffTime[i] = timeOff;
+          printTime(); Serial.println("relay " + String(i) + ": timeOn=" + String(timeOn) + ", timeOff=" + String(timeOff));
+        }
+        else if (relayConfig.containsKey("on") && relayConfig["on"] == "always")
+        {
+          relayOnTime[i] = RELAY_ALWAYSON;
+          printTime(); Serial.println("relay " + String(i) + ": always on");
+        }
+        else
+        {
+          printTime(); Serial.println("Invalid config for relay " + String(i));
+        }
+      }
+    }
+  }
+  
+  // Read "powerSaving" value
+  if (doc.containsKey("powerSaving"))
+  {
+    _powerSavingEnabled = doc["powerSaving"].as<bool>();
+    printTime(); Serial.println("powerSaving: " + String(_powerSavingEnabled ? "enabled" : "disabled"));
+  }
+  
+  // Read "device_name" value
+  if (doc.containsKey("deviceName"))
+  {
+    const char* deviceName = doc["deviceName"];
+    printTime(); Serial.println("deviceName: " + String(deviceName));
+  }
+  
+  delete[] payloadStr;
+
+  printTime(); Serial.println("------");
 }
 
 /**

@@ -72,7 +72,6 @@ uint8_t WioGreenhouseDeviceMgr::updateSensors()
         _lux = 0.0;
       }
       
-      WioGreenhouseApp::getApp().printTime();
       Serial.print("Humidity: ");
       Serial.print(_temp_hum_val[0]);
       Serial.print(" %\tTemperature: ");

@@ -11,7 +11,7 @@ Copyright 2024 Diego Quesada
 ## Required connections
 ```mermaid
 graph TD;
-   A[WioLink] --> |D13| B[Relay]
+   A[WioLink] --> |D12,D13| B[Relay]
    A --> |D14| C[DHT11]
    A --> |I2C| D[TLS2561]
    A -.-> |Wifi| E(MQTT broker)
@@ -22,10 +22,31 @@ Arduino core for the ESP8266 chip: https://github.com/esp8266/Arduino
 Grove Temp and Humidity sensor v2.0.2: https://github.com/Seeed-Studio/Grove_Temperature_And_Humidity_Sensor
 Arduino client for MQTT 2.8: https://github.com/knolleary/pubsubclient
 Adafruit TSL2561 sensor v1.1.2: https://github.com/adafruit/Adafruit_TSL2561
-NTPCilent v3.2.1: https://github.com/arduino-libraries/NTPClient
+NTPClient v3.2.1: https://github.com/arduino-libraries/NTPClient
+PubSubClient v2.8.0: http://pubsubclient.knolleary.net/
+ArduinoJson v7.3.0: https://github.com/bblanchon/ArduinoJson
+
+## Device configuration
+The device subscribes to the `wioLink/device_id/config` topic to update its configuration. The topic has the following format:
+
+```
+{
+   "relays": [
+      {
+         "on": "time",        // time: turn on at specific time; always: keep on all the time
+         "timeOn": 6,        // if configured with "time", then turn on at this hour (24-hour clock)
+         "timeOff": 20       // if configured with "time", then turn off at this hour (24-hour clock)
+      },
+   ],
+   "powerSaving": true,       // boolean value
+   "deviceName": "upstairs"   // currently unused
+}
+
+## Fan control
+The ESP8266EX datasheet indicates a maximum of 12 mA per GPIO. The fan requires up to 157 mA. Therefore we need to power it separately, and use
+a transistor to control it.
 
 ## Future improvements
-- Use mDNS/DNS-SD to obtain MQTT server address
 - Replace the DHT11 temp/humidity sensor with BME680
 - Capture critical exceptions into flash for later analysis
 - Add REST APIs to set parameters such as time on/off
