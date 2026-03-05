@@ -414,11 +414,20 @@ void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned in
         JsonObject relayConfig = relaysArray[i];
         if (relayConfig.containsKey("on") && relayConfig["on"] == "time")
         {
-          int timeOn = relayConfig["time_on"].as<int>();
-          int timeOff = relayConfig["time_off"].as<int>();
+          int timeOn = relayConfig["timeOn"].as<int>();
+          int timeOff = relayConfig["timeOff"].as<int>();
           relayOnTime[i] = timeOn;
           relayOffTime[i] = timeOff;
-          printTime(); Serial.println("relay " + String(i) + ": time_on=" + String(timeOn) + ", time_off=" + String(timeOff));
+          printTime(); Serial.println("relay " + String(i) + ": timeOn=" + String(timeOn) + ", timeOff=" + String(timeOff));
+        }
+        else if (relayConfig.containsKey("on") && relayConfig["on"] == "always")
+        {
+          relayOnTime[i] = RELAY_ALWAYSON;
+          printTime(); Serial.println("relay " + String(i) + ": always on");
+        }
+        else
+        {
+          printTime(); Serial.println("Invalid config for relay " + String(i));
         }
       }
     }

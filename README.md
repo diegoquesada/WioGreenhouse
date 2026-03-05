@@ -33,9 +33,9 @@ The device subscribes to the `wioLink/device_id/config` topic to update its conf
 {
    "relays": [
       {
-         "on": "time",        // time: turn on at specific time; always_on: keep on all the time
-         "time_on": 6,        // if configured with "time", then turn on at this hour (24-hour clock)
-         "time_off": 20       // if configured with "time", then turn off at this hour (24-hour clock)
+         "on": "time",        // time: turn on at specific time; always: keep on all the time
+         "timeOn": 6,        // if configured with "time", then turn on at this hour (24-hour clock)
+         "timeOff": 20       // if configured with "time", then turn off at this hour (24-hour clock)
       },
    ],
    "powerSaving": true,       // boolean value
