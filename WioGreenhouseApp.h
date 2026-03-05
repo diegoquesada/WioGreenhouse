@@ -46,6 +46,7 @@ private:
     void getSensorsJson(char *jsonOut) const;
 
     static void mqttCallback(char* topic, byte* payload, unsigned int length);
+    void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
 
 private:
     static WioGreenhouseApp *_singleton;

@@ -238,7 +238,8 @@ void WioGreenhouseApp::loop()
     delay(100); // Allow time for the last message to be sent
     ESP.deepSleep(DEFAULT_UPDATE_INTERVAL*1000);
   }
-  else
+
+  if (!_powerSavingEnabled)
   {
     // Update relays if we updated sensors, or have been overridden.
     if (sensorsUpdate != 2 ||
@@ -366,79 +367,80 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
  */
 /*static*/ void WioGreenhouseApp::mqttCallback(char* topic, byte* payload, unsigned int length)
 {
-  WioGreenhouseApp& app = WioGreenhouseApp::getApp();
+  WioGreenhouseApp::getApp().handleMQTTMessage(topic, payload, length);
+}
 
-  app.printTime();
+void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned int length)
+{
+  printTime();
   Serial.print("--- Received MQTT message on topic: ");
   Serial.print(topic);
   Serial.println(" ---");
   
   // Build the expected config topic: wioLink/{device_id}/config
   char expectedTopic[64] = { 0 };
-  sprintf(expectedTopic, "wioLink/%x/config", app.getSerialNumber());
+  sprintf(expectedTopic, "wioLink/%x/config", getSerialNumber());
   
   // Check if this is the config topic for this device
-  if (strcmp(topic, expectedTopic) == 0)
+  if (strcmp(topic, expectedTopic) != 0)
   {
-    // Create a buffer for the payload (null-terminated)
-    char* payloadStr = new char[length + 1];
-    memcpy(payloadStr, payload, length);
-    payloadStr[length] = '\0';
-    
-    // Parse JSON payload
-    StaticJsonDocument<256> doc;
-    DeserializationError error = deserializeJson(doc, payloadStr);
-    
-    if (error)
+    return;
+  }
+  
+  // Create a buffer for the payload (null-terminated)
+  char* payloadStr = new char[length + 1];
+  memcpy(payloadStr, payload, length);
+  payloadStr[length] = '\0';
+  
+  // Parse JSON payload
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, payloadStr);
+  
+  if (error)
+  {
+    printTime(); Serial.println("Failed to parse JSON config payload");
+    delete[] payloadStr;
+    return;
+  }
+
+  // Read "relays" array
+  if (doc.containsKey("relays") && doc["relays"].is<JsonArray>())
+  {
+    JsonArray relaysArray = doc["relays"];
+    for (size_t i = 0; i < relaysArray.size() && i < MAX_RELAYS; i++)
     {
-      app.printTime();
-      Serial.println("Failed to parse JSON config payload");
-      delete[] payloadStr;
-      return;
-    }
-    
-    // Read "relays" array
-    if (doc.containsKey("relays") && doc["relays"].is<JsonArray>())
-    {
-      JsonArray relaysArray = doc["relays"];
-      for (size_t i = 0; i < relaysArray.size() && i < MAX_RELAYS; i++)
+      if (relaysArray[i].is<JsonObject>())
       {
-        if (relaysArray[i].is<int>())
+        JsonObject relayConfig = relaysArray[i];
+        if (relayConfig.containsKey("on") && relayConfig["on"] == "time")
         {
-          int relayValue = relaysArray[i].as<int>();
-          app.printTime(); Serial.println("relay: " + String(i) + ", " + String(relayValue));
-          //_app.setRelay(relayIndex, relayOn, delayValue);
+          int timeOn = relayConfig["time_on"].as<int>();
+          int timeOff = relayConfig["time_off"].as<int>();
+          relayOnTime[i] = timeOn;
+          relayOffTime[i] = timeOff;
+          printTime(); Serial.println("relay " + String(i) + ": time_on=" + String(timeOn) + ", time_off=" + String(timeOff));
         }
       }
     }
-    
-    // Read "light" value
-    if (doc.containsKey("light"))
-    {
-      int lightValue = doc["light"].as<int>();
-      app.printTime();
-      Serial.println("light: " + String(lightValue));
-    }
-    
-    // Read "powerSaving" value
-    if (doc.containsKey("powerSaving"))
-    {
-      app._powerSavingEnabled = doc["powerSaving"].as<bool>();
-      app.printTime(); Serial.println("powerSaving: " + String(app._powerSavingEnabled ? "enabled" : "disabled"));
-    }
-    
-    // Read "device_name" value
-    if (doc.containsKey("device_name"))
-    {
-      const char* deviceName = doc["device_name"];
-      app.printTime();
-      Serial.println("device_name: " + String(deviceName));
-    }
-    
-    delete[] payloadStr;
   }
+  
+  // Read "powerSaving" value
+  if (doc.containsKey("powerSaving"))
+  {
+    _powerSavingEnabled = doc["powerSaving"].as<bool>();
+    printTime(); Serial.println("powerSaving: " + String(_powerSavingEnabled ? "enabled" : "disabled"));
+  }
+  
+  // Read "device_name" value
+  if (doc.containsKey("deviceName"))
+  {
+    const char* deviceName = doc["deviceName"];
+    printTime(); Serial.println("deviceName: " + String(deviceName));
+  }
+  
+  delete[] payloadStr;
 
-  app.printTime(); Serial.println("------");
+  printTime(); Serial.println("------");
 }
 
 /**

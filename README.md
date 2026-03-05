@@ -26,6 +26,22 @@ NTPClient v3.2.1: https://github.com/arduino-libraries/NTPClient
 PubSubClient v2.8.0: http://pubsubclient.knolleary.net/
 ArduinoJson v7.3.0: https://github.com/bblanchon/ArduinoJson
 
+## Device configuration
+The device subscribes to the `wioLink/device_id/config` topic to update its configuration. The topic has the following format:
+
+```
+{
+   "relays": [
+      {
+         "on": "time",        // time: turn on at specific time; always_on: keep on all the time
+         "time_on": 6,        // if configured with "time", then turn on at this hour (24-hour clock)
+         "time_off": 20       // if configured with "time", then turn off at this hour (24-hour clock)
+      },
+   ],
+   "powerSaving": true,       // boolean value
+   "deviceName": "upstairs"   // currently unused
+}
+
 ## Fan control
 The ESP8266EX datasheet indicates a maximum of 12 mA per GPIO. The fan requires up to 157 mA. Therefore we need to power it separately, and use
 a transistor to control it.
