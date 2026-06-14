@@ -28,6 +28,7 @@ public:
     String getDate() const;
     String getTime() const; /// Returns the current time in HH:MM:SS format
     String getBootupTime(); /// Returns the time elapsed since last bootup
+    String getDeviceName() const { return String(_deviceName); }
     void printTime(); /// Prints the current internal time since boot on the serial
 
     void setRelay(uint8_t relayIndex, bool on, unsigned long delay);
@@ -42,8 +43,10 @@ private:
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);
     bool updateRelay(uint8_t relayIndex);
+    bool updateFan();
 
-    void getSensorsJson(char *jsonOut) const;
+    void getSensorsJson(char *jsonOut, size_t bufferSize) const;
+    void getRelaysJson(char *jsonOut, size_t bufferSize) const;
 
     static void mqttCallback(char* topic, byte* payload, unsigned int length);
     void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
@@ -66,11 +69,17 @@ private:
     int8_t relayOnTime[2] = { RELAY_ALWAYSON, 6 }; /// Hour of the day when the relay should be on; RELAY_ALWAYSON for always on.
     int8_t relayOffTime[2] = { RELAY_ALWAYSON, 20 }; /// Hour of the day when the relay should be off.
 
+    char _deviceName[20] = { 0 };
+
+    const unsigned long FAN_INTERVAL = 2 * 60 * 1000; /// How often to turn the fan on, in ms
+    TimerCounter _fanTimer;
+    bool _fanOn = false;
+
     WiFiClient _wifiClient;
 
     PubSubClient _pubSubClient;
 
-    const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
+    const unsigned long DEFAULT_UPDATE_INTERVAL = 30 * 1000; /// Default sensor update frequency - 5 min
     WioGreenhouseDeviceMgr _devices;
 
     WioGreenhouseServer _webServer;
