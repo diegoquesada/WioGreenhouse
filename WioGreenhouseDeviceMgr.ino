@@ -70,6 +70,7 @@ uint8_t WioGreenhouseDeviceMgr::updateSensors()
           _lux = event.light;
           _sensorsStatus |= SENSORS_STATUS_LIGHTOK;
           //Serial.println("Lux sensor OK");
+        }
       }
       else
       {

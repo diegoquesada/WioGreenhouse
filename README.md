@@ -11,21 +11,21 @@ Copyright 2024 Diego Quesada
 ## Required connections
 ```mermaid
 graph TD;
-   A[WioLink] --> |D12,D13/J7| B[Relay]
-   A --> |D14/J4| C[DHT11]
-   A --> |I2C/J8| D[TLS2561]
+   A[WioLink] --> |D12,D13| B[Relay]
+   A --> |D14| C[DHT11]
+   A --> |I2C| D[TLS2561]
    A -.-> |Wifi| E(MQTT broker)
-   A --> |D13| F[Fan Control]
+   A --> |D2| F[Fan Control]
 ```
 
 ## Dependencies
 Arduino core for the ESP8266 chip: https://github.com/esp8266/Arduino  
-Grove Temp and Humidity sensor v2.0.2: https://github.com/Seeed-Studio/Grove_Temperature_And_Humidity_Sensor  
-Arduino client for MQTT 2.8: https://github.com/knolleary/pubsubclient  
-Adafruit TSL2561 sensor v1.1.2: https://github.com/adafruit/Adafruit_TSL2561  
-NTPClient v3.2.1: https://github.com/arduino-libraries/NTPClient  
-PubSubClient v2.8.0: http://pubsubclient.knolleary.net/  
-ArduinoJson v7.3.0: https://github.com/bblanchon/ArduinoJson  
+Grove Temp and Humidity sensor v2.0.2: https://github.com/Seeed-Studio/Grove_Temperature_And_Humidity_Sensor
+Arduino client for MQTT 2.8: https://github.com/knolleary/pubsubclient
+Adafruit TSL2561 sensor v1.1.2: https://github.com/adafruit/Adafruit_TSL2561
+NTPClient v3.2.1: https://github.com/arduino-libraries/NTPClient
+PubSubClient v2.8.0: http://pubsubclient.knolleary.net/
+ArduinoJson v7.3.0: https://github.com/bblanchon/ArduinoJson
 
 ## Device configuration
 The device subscribes to the `wioLink/device_id/config` topic to update its configuration. The topic has the following format:
@@ -39,29 +39,37 @@ The device subscribes to the `wioLink/device_id/config` topic to update its conf
          "timeOff": 20       // if configured with "time", then turn off at this hour (24-hour clock)
       },
    ],
+   "fan": "on" | "off",
    "powerSaving": true,       // boolean value
    "deviceName": "upstairs"   // currently unused
 }
 ```
 
+# Web APIs
+The device runs a mini web server that supports the following APIs:
+- /status: returns device current status
+- /date: returns the device's current date
+- /time: returns the device's current time
+- /setRelay(relayIndex = #, on = yes|no, delay = #): sets a relay on|off, either permanently (delay=0), or for a specified number of seconds
+- /sensors: returns the most recent values of all sensors
+
 ## Power consumption
-WioLink (Wi-Fi on): 70 mA
+WioLink (Wi-Fi on): 70 mA  
 Relay module: 89.3 mA
 DHT11 module (when measuring): 2.1 mA
 TLS2561 module: 0.6 mA
 TOTAL main device: 162 mA
 Fan (on): 157 mA
 TOTAL system: 319 mA
-
-## Fan control
-The ESP8266EX datasheet indicates a maximum of 12 mA per GPIO. The fan requires up to 157 mA. Therefore we need to power it separately, and use
-a transistor to control it.
+ 
+The ESP8266EX can provide max 12 mA per GPIO. The fan requires up to 157 mA and therefore
+needs to be powered separately through an auxiliary board.
 
 ```mermaid
 graph TD;
-   A(WioLink) -->|D2 - Base|B
-   B[BJT] --|Ground|D@{shape: flipped-triangle}
-   C[5V] --> |Collector|B
+   A(WioLink) --> |D2 - Base| B
+   B[BS170] --> |Ground| D@{shape: flipped-triangle}
+   C[5V] --> |Collector| B
 ```
 
 ## Future improvements

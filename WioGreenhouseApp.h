@@ -74,12 +74,13 @@ private:
     const unsigned long FAN_INTERVAL = 2 * 60 * 1000; /// How often to turn the fan on, in ms
     TimerCounter _fanTimer;
     bool _fanOn = false;
+    uint8_t _fanOverride = 0; // 0 if not overridden (driven by humidity), 1 is override on, 2 is override off
 
     WiFiClient _wifiClient;
 
     PubSubClient _pubSubClient;
 
-    const unsigned long DEFAULT_UPDATE_INTERVAL = 30 * 1000; /// Default sensor update frequency - 5 min
+    const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
     WioGreenhouseDeviceMgr _devices;
 
     WioGreenhouseServer _webServer;
