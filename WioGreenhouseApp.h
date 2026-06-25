@@ -20,17 +20,20 @@ public:
     uint32_t getSerialNumber() const;
     String getIP() const { return WiFi.localIP().toString(); }
     String getMAC() const { return WiFi.macAddress(); }
-    bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
-    bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     uint8_t getSensorsStatus() const { return _devices.getSensorsStatus(); }
 
     String getBootReasonString() const;
     String getDate() const;
     String getTime() const; /// Returns the current time in HH:MM:SS format
     String getBootupTime(); /// Returns the time elapsed since last bootup
+    String getDeviceName() const { return String(_deviceName); }
     void printTime(); /// Prints the current internal time since boot on the serial
 
+    bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
+    bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     void setRelay(uint8_t relayIndex, bool on, unsigned long delay);
+
+    bool isFanOn() const { return _fanOn; }
 
     WioGreenhouseDeviceMgr& getDevices() { return _devices; }
     static WioGreenhouseApp& getApp() { return *_singleton; }
@@ -42,8 +45,10 @@ private:
     bool initHTTPServer();
     bool pushUpdate(const char *topic, const char *json, bool retained = false);
     bool updateRelay(uint8_t relayIndex);
+    bool updateFan();
 
-    void getSensorsJson(char *jsonOut) const;
+    void getSensorsJson(char *jsonOut, size_t bufferSize) const;
+    void getRelaysJson(char *jsonOut, size_t bufferSize) const;
 
     static void mqttCallback(char* topic, byte* payload, unsigned int length);
     void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
@@ -66,8 +71,16 @@ private:
     int8_t relayOnTime[2] = { RELAY_ALWAYSON, 6 }; /// Hour of the day when the relay should be on; RELAY_ALWAYSON for always on.
     int8_t relayOffTime[2] = { RELAY_ALWAYSON, 20 }; /// Hour of the day when the relay should be off.
 
-    WiFiClient _wifiClient;
+    char _deviceName[20] = { 0 };
 
+    const unsigned long FAN_INTERVAL = 2 * 60 * 1000; /// How often to turn the fan on/off, in ms
+    TimerCounter _fanTimer; // Timer for fan control
+    TimerCounter _fanOverrideTimer; // Timer for fan override
+    bool         _fanOn = false; // Current state of the fan
+    uint8_t      _fanOverride = 0; // 0 if not overridden (driven by humidity), 1 is override on, 2 is override off
+    uint8_t      _fanHumidityThreshold = 70; // Humidity threshold for turning the fan on
+
+    WiFiClient   _wifiClient;
     PubSubClient _pubSubClient;
 
     const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min

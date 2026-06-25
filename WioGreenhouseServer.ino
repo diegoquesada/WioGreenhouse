@@ -74,6 +74,7 @@ void WioGreenhouseServer::getStatus()
     Serial.println("HTTP server: request for /status.");
     send(200, "application/json",
       String("{\n  \"version\":\"")      + _app.getVersionStr() + "\"," +
+      String( "\n  \"deviceName\":\"")   + _app.getDeviceName() + "\"," +
       String( "\n  \"uptime\":\"")       + _app.getBootupTime() + "\"," +
       String( "\n  \"bootReason\":\"")   + _app.getBootReasonString() + "\"," +
       String( "\n  \"time\":\"")         + _app.getTime() + "\"," +
@@ -92,6 +93,7 @@ void WioGreenhouseServer::getStatus()
       String( "\n      \"override\": ")  + (_app.getRelayOverride(1) ? "true, " : "false, ") +
       String( "\n    }") +
       String( "\n  },") +
+      String( "\n  \"fan\": ")           + (_app.isFanOn() ? "true" : "false") +
       String( "\n}"));
   }
 }

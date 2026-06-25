@@ -25,9 +25,11 @@ WioGreenhouseDeviceMgr::WioGreenhouseDeviceMgr(unsigned long updateInterval) :
 void WioGreenhouseDeviceMgr::setup()
 {
   Wire.begin();
+  Wire.setTimeout(1000); // Timeout I2C operations to prevent hangs
   _dht.begin();
 
-  if (!tsl.begin())
+  _luxSensorAvailable = tsl.begin();
+  if (!_luxSensorAvailable)
   {
     Serial.println("TSL2561 not found.");
   }
@@ -59,19 +61,22 @@ uint8_t WioGreenhouseDeviceMgr::updateSensors()
     {
       _sensorsStatus = SENSORS_STATUS_TEMPHUMOK;
 
-      sensors_event_t event;
-      tsl.getEvent(&event);
-      if (event.light)
+      if (_luxSensorAvailable)
       {
-        _lux = event.light;
-        _sensorsStatus |= SENSORS_STATUS_LIGHTOK;
-        //Serial.println("Lux sensor OK");
+        sensors_event_t event;
+        tsl.getEvent(&event);
+        if (event.light)
+        {
+          _lux = event.light;
+          _sensorsStatus |= SENSORS_STATUS_LIGHTOK;
+          //Serial.println("Lux sensor OK");
+        }
       }
       else
       {
         _lux = 0.0;
       }
-      
+
       Serial.print("Humidity: ");
       Serial.print(_temp_hum_val[0]);
       Serial.print(" %\tTemperature: ");

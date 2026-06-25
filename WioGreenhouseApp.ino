@@ -15,11 +15,12 @@
 #include "secrets.h"
 
 const int ledPin = LED_BUILTIN; // Built-in LED, turned on if all good
+const int fanPin = 2; // Fan pin, happens to be the same as built-in LED
 const int relayPin[] = { 12, 13 }; // Relay pins
 const int enablePin = 15; // Enable power to other pins
 const uint8_t MAX_RELAYS = 2;
 
-const char versionString[] = "WioGreenhouse 2026.2";
+const char versionString[] = "WioGreenhouse 2026.3";
 
 WiFiUDP udp;
 mDNSResolver::Resolver resolver(udp);
@@ -35,26 +36,33 @@ const char *clientID = "wioclient1";
 
 /*static*/ WioGreenhouseApp *WioGreenhouseApp::_singleton = nullptr;
 
+char *_tempJson = nullptr;
+
 WioGreenhouseApp::WioGreenhouseApp() :
     _devices(DEFAULT_UPDATE_INTERVAL),
+    _powerTimer(POWER_INTERVAL),
+    _fanTimer(FAN_INTERVAL),
+    _fanOverrideTimer(FAN_INTERVAL),
     _pubSubClient(_wifiClient),
-    _webServer(*this),
-    _powerTimer(POWER_INTERVAL)
+    _webServer(*this)
 {
     _singleton = this;
     //_powerSavingEnabled = true;
+    _tempJson = new char[80];
 }
 
 void WioGreenhouseApp::setup()
 {
   pinMode(enablePin, OUTPUT);
-  pinMode(ledPin, OUTPUT);
+  //pinMode(ledPin, OUTPUT);
   if (!_powerSavingEnabled) // Relays disabled in power saving mode
   {
     pinMode(relayPin[0], OUTPUT);
     pinMode(relayPin[1], OUTPUT);
+    pinMode(fanPin, OUTPUT);
     digitalWrite(relayPin[0], LOW); // Turn relay off
     digitalWrite(relayPin[1], LOW); // Turn relay off
+    digitalWrite(fanPin, LOW); // Turn fan off
   }
   digitalWrite(enablePin, HIGH); // Enable power to Grove connectors
 
@@ -164,12 +172,15 @@ bool WioGreenhouseApp::connectMQTT()
 
   if (_pubSubClient.connected())
   {
-    digitalWrite(ledPin, 1);
+    //digitalWrite(ledPin, 1);
     _mqttConnected = true;
 
+
     // Update sysInfo topic
-    char tempBuffer[64] = { 0 };
-    sprintf(tempBuffer, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
+    // { "version": "WioGreenhouse 2026.3", "uptime": "100d 10hr 10min", "ip": "192.168.100.100" }
+    char tempBuffer[100] = { 0 };
+    sprintf(tempBuffer, "{ \"version\": \"%s\", \"uptime\": \"%s\", \"ip\": \"%s\" }",
+      getVersionStr().c_str(), getBootupTime().c_str(), getIP().c_str());
     pushUpdate("sysInfo", tempBuffer, true);
 
     sprintf(tempBuffer, "wioLink/%x/config", getSerialNumber());
@@ -179,7 +190,7 @@ bool WioGreenhouseApp::connectMQTT()
   }
   else
   {
-    digitalWrite(ledPin, 0);
+    //digitalWrite(ledPin, 0);
     _mqttConnected = false;
     return false;
   }
@@ -217,22 +228,26 @@ uint32_t WioGreenhouseApp::getSerialNumber() const
 
 void WioGreenhouseApp::loop()
 {
-  char tempJson[80] = { 0 };
-
-  // Sensors update occurs on a set interval.
   unsigned char sensorsUpdate = _devices.updateSensors();
   if (sensorsUpdate == 1)
   {
-    getSensorsJson(tempJson);
-    pushUpdate(sensorsTopic, tempJson);
-  }
+    /*printTime();
+    Serial.print("Pushing sensor update, free heap: ");
+    Serial.println(ESP.getFreeHeap()); */
 
+    getSensorsJson(_tempJson, 80);
+    pushUpdate(sensorsTopic, _tempJson);
+    
+    yield(); // Feed watchdog periodically
+  }
+  
   _pubSubClient.loop();
 
   if (_powerSavingEnabled && _powerTimer.IsItTime())
   {
     // The following actions are not performed while in power saving mode:
     // - Relay control (relays always off)
+    // - Fan control (fan always off)
     // - HTTP server
     printTime(); Serial.println("Going to sleep for 5 minutes.");
     delay(100); // Allow time for the last message to be sent
@@ -241,17 +256,25 @@ void WioGreenhouseApp::loop()
 
   if (!_powerSavingEnabled)
   {
-    // Update relays if we updated sensors, or have been overridden.
+    // Update relays and fan if we updated sensors, or have been overridden.
     if (sensorsUpdate != 2 ||
-        _relayOverride[0] != 0 || _relayOverride[1] != 0)
+        _relayOverride[0] != 0 || _relayOverride[1] != 0 || _fanOverride != 0)
     {
+      /*printTime();
+      Serial.print("Updating relays, free heap: ");
+      Serial.println(ESP.getFreeHeap());*/
+
       bool relay1Changed = updateRelay(0);
       bool relay2Changed = updateRelay(1);
       if (relay1Changed || relay2Changed)
       {
-        sprintf(tempJson, "{ \"relay1\": %d, \"relay2\": %d }", _relayState[0], _relayState[1]);
-        pushUpdate(relayTopic, tempJson);
+        getRelaysJson(_tempJson, 80);
+        pushUpdate(relayTopic, _tempJson);
       }
+
+      updateFan();
+
+      yield(); // Feed watchdog periodically
     }
 
     _webServer.handleClient();
@@ -272,10 +295,10 @@ bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool reta
   if (_pubSubClient.connected())
   {
     char tempTopic[64] = { 0 };
-    sprintf(tempTopic, "wioLink/%x/%s", getSerialNumber(), topic, retained);
+    snprintf(tempTopic, sizeof(tempTopic), "wioLink/%x/%s", getSerialNumber(), topic);
     if (_pubSubClient.publish(tempTopic, json, retained))
     {
-      printTime(); Serial.println("MQTT update sent for " + String(tempTopic));
+      printTime(); Serial.print("MQTT update sent for "); Serial.println(tempTopic);
     }
 
     return true;
@@ -290,11 +313,18 @@ bool WioGreenhouseApp::pushUpdate(const char *topic, const char *json, bool reta
 /**
  * Returns a JSON string with the current sensor readings.
  */
-void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
+void WioGreenhouseApp::getSensorsJson(char *jsonOut, size_t bufferSize) const
 {
-  sprintf(jsonOut, 
+  snprintf(jsonOut, bufferSize,
     "{ \"temperature\": %.2f, \"humidity\": %.2f, \"lux\": %lu }",
     _devices.getTemp(), _devices.getHum(), _devices.getLux() );
+}
+
+void WioGreenhouseApp::getRelaysJson(char *jsonOut, size_t bufferSize) const
+{
+  snprintf(jsonOut, bufferSize,
+    "{ \"relay1\": %d, \"relay2\": %d }",
+    _relayState[0], _relayState[1] );
 }
 
 /**
@@ -304,8 +334,6 @@ void WioGreenhouseApp::getSensorsJson(char *jsonOut) const
  */
 bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 {
-  char tempJson[64] = { 0 };
-
   if (relayIndex >= MAX_RELAYS)
   {
     printTime();
@@ -344,13 +372,13 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
     if (_relayState[relayIndex])
     {
       printTime();
-      Serial.println("Turning relay " + String(relayIndex) + String(" ON"));
+      Serial.print("Turning relay "); Serial.print(relayIndex); Serial.println(" ON");
       digitalWrite(relayPin[relayIndex], HIGH);
     }
     else
     {
       printTime();
-      Serial.println("Turning relay " + String(relayIndex) + String(" OFF"));
+      Serial.print("Turning relay "); Serial.print(relayIndex); Serial.println(" OFF");
       digitalWrite(relayPin[relayIndex], LOW);
     }
 
@@ -360,6 +388,38 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
   {
     return false;
   }
+}
+
+bool WioGreenhouseApp::updateFan()
+{
+  if (_fanOverride != 0)
+  {
+    if (_fanOverrideTimer.IsItTime())
+    {
+      _fanOverride = 0;
+      printTime(); Serial.println("Fan override has expired, setting back.");
+    }
+    else
+    {
+      return false; // Fan is overridden, don't change state.
+    }
+  }
+
+  if (_devices.getHum() > _fanHumidityThreshold && !_fanOn)
+  {
+    Serial.println("Turning fan ON");
+    digitalWrite(fanPin, HIGH);
+    _fanTimer.Reset();
+    _fanOn = true;
+  }
+  else if (_fanOn && _fanTimer.IsItTime())
+  {
+    Serial.println("Turning fan OFF");
+    digitalWrite(fanPin, LOW);
+    _fanOn = false;
+  }
+
+  return true;
 }
 
 /**
@@ -372,10 +432,17 @@ bool WioGreenhouseApp::updateRelay(uint8_t relayIndex)
 
 void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned int length)
 {
-  printTime();
+/*  printTime();
   Serial.print("--- Received MQTT message on topic: ");
   Serial.print(topic);
-  Serial.println(" ---");
+  Serial.println(" ---");*/
+  
+  // Ignore absurdly large payloads to avoid exhausting heap.
+  if (length >= 512)
+  {
+    printTime(); Serial.println("MQTT payload too large");
+    return;
+  }
   
   // Build the expected config topic: wioLink/{device_id}/config
   char expectedTopic[64] = { 0 };
@@ -386,14 +453,19 @@ void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned in
   {
     return;
   }
-  
+
   // Create a buffer for the payload (null-terminated)
   char* payloadStr = new char[length + 1];
+  if (!payloadStr)
+  {
+    printTime(); Serial.println("MQTT payload allocation failed");
+    return;
+  }
   memcpy(payloadStr, payload, length);
   payloadStr[length] = '\0';
   
   // Parse JSON payload
-  StaticJsonDocument<256> doc;
+  StaticJsonDocument<128> doc;
   DeserializationError error = deserializeJson(doc, payloadStr);
   
   if (error)
@@ -402,6 +474,8 @@ void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned in
     delete[] payloadStr;
     return;
   }
+
+  yield(); // Feed watchdog after parsing MQTT message
 
   // Read "relays" array
   if (doc.containsKey("relays") && doc["relays"].is<JsonArray>())
@@ -418,38 +492,72 @@ void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned in
           int timeOff = relayConfig["timeOff"].as<int>();
           relayOnTime[i] = timeOn;
           relayOffTime[i] = timeOff;
-          printTime(); Serial.println("relay " + String(i) + ": timeOn=" + String(timeOn) + ", timeOff=" + String(timeOff));
+          //printTime(); Serial.println("relay " + String(i) + ": timeOn=" + String(timeOn) + ", timeOff=" + String(timeOff));
         }
         else if (relayConfig.containsKey("on") && relayConfig["on"] == "always")
         {
           relayOnTime[i] = RELAY_ALWAYSON;
-          printTime(); Serial.println("relay " + String(i) + ": always on");
+          //printTime(); Serial.println("relay " + String(i) + ": always on");
         }
         else
         {
-          printTime(); Serial.println("Invalid config for relay " + String(i));
+          //printTime(); Serial.println("Invalid config for relay " + String(i));
         }
       }
     }
   }
-  
+
+  if (doc.containsKey("fan"))
+  {
+    JsonObject fanConfig = doc["fan"];
+    if (fanConfig.containsKey("state"))
+    {
+      if (fanConfig["state"] == "on")
+      {
+        _fanOn = true;
+        digitalWrite(fanPin, HIGH);
+        _fanOverride = 1;
+        _fanOverrideTimer.Reset();
+        printTime(); Serial.println("Fan turned ON via config");
+      }
+      else if (fanConfig["state"] == "off")
+      {
+        _fanOn = false;
+        digitalWrite(fanPin, LOW);
+        _fanOverride = 2;
+        _fanOverrideTimer.Reset();
+        printTime(); Serial.println("Fan turned OFF via config");
+      }
+    }
+
+    if (fanConfig.containsKey("humidity") )
+    {
+      uint8_t humidityThreshold = fanConfig["humidity"].as<uint8_t>();
+      if (humidityThreshold >= 20 && humidityThreshold <= 100)
+      {
+        _fanHumidityThreshold = humidityThreshold;
+        printTime(); Serial.print("Fan humidity threshold set to "); Serial.println(_fanHumidityThreshold);
+      }
+    }
+  }
+
   // Read "powerSaving" value
   if (doc.containsKey("powerSaving"))
   {
     _powerSavingEnabled = doc["powerSaving"].as<bool>();
-    printTime(); Serial.println("powerSaving: " + String(_powerSavingEnabled ? "enabled" : "disabled"));
+    //printTime(); Serial.println("powerSaving: " + String(_powerSavingEnabled ? "enabled" : "disabled"));
   }
   
   // Read "device_name" value
   if (doc.containsKey("deviceName"))
   {
     const char* deviceName = doc["deviceName"];
-    printTime(); Serial.println("deviceName: " + String(deviceName));
+    strncpy(_deviceName, deviceName, sizeof(_deviceName) - 1);
+    _deviceName[sizeof(_deviceName) - 1] = '\0';
+    //printTime(); Serial.println("deviceName: " + String(deviceName));
   }
   
   delete[] payloadStr;
-
-  printTime(); Serial.println("------");
 }
 
 /**
@@ -466,8 +574,13 @@ void WioGreenhouseApp::setRelay(uint8_t relayIndex, bool on, unsigned long delay
   }
 
   printTime();
-  Serial.println("setRelay(" + String(relayIndex) + ", " + String(on) + ", " +
-                         String((delay==0) ? RELAY_OVERRIDE : delay) + ")");
+  Serial.print("setRelay(");
+  Serial.print(relayIndex);
+  Serial.print(", ");
+  Serial.print(on);
+  Serial.print(", ");
+  Serial.print((delay==0) ? RELAY_OVERRIDE : delay);
+  Serial.println(")");
 
   if (on)
   {

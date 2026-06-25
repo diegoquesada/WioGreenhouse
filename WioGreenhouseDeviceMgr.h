@@ -32,5 +32,6 @@ private:
 
     DHT _dht; /// Grove digital humidity and temp sensor
     float _temp_hum_val[2] = {0}; /// Last measured temp and humidity from DHT sensor -- 0: humidity, 1: temp
+    bool _luxSensorAvailable = false;
     float _lux = 0; /// Last measured lux value
 };
