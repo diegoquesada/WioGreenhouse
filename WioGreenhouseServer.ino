@@ -93,6 +93,7 @@ void WioGreenhouseServer::getStatus()
       String( "\n      \"override\": ")  + (_app.getRelayOverride(1) ? "true, " : "false, ") +
       String( "\n    }") +
       String( "\n  },") +
+      String( "\n  \"fan\": ")           + (_app.isFanOn() ? "true" : "false") +
       String( "\n}"));
   }
 }

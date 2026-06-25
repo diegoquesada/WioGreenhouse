@@ -42,6 +42,7 @@ WioGreenhouseApp::WioGreenhouseApp() :
     _devices(DEFAULT_UPDATE_INTERVAL),
     _powerTimer(POWER_INTERVAL),
     _fanTimer(FAN_INTERVAL),
+    _fanOverrideTimer(FAN_INTERVAL),
     _pubSubClient(_wifiClient),
     _webServer(*this)
 {
@@ -174,9 +175,12 @@ bool WioGreenhouseApp::connectMQTT()
     //digitalWrite(ledPin, 1);
     _mqttConnected = true;
 
+
     // Update sysInfo topic
-    char tempBuffer[64] = { 0 };
-    sprintf(tempBuffer, "{ \"version\": \"%s\", \"uptime\": \"%s\" }", getVersionStr().c_str(), getBootupTime().c_str());
+    // { "version": "WioGreenhouse 2026.3", "uptime": "100d 10hr 10min", "ip": "192.168.100.100" }
+    char tempBuffer[100] = { 0 };
+    sprintf(tempBuffer, "{ \"version\": \"%s\", \"uptime\": \"%s\", \"ip\": \"%s\" }",
+      getVersionStr().c_str(), getBootupTime().c_str(), getIP().c_str());
     pushUpdate("sysInfo", tempBuffer, true);
 
     sprintf(tempBuffer, "wioLink/%x/config", getSerialNumber());
@@ -390,10 +394,18 @@ bool WioGreenhouseApp::updateFan()
 {
   if (_fanOverride != 0)
   {
-    return false;
+    if (_fanOverrideTimer.IsItTime())
+    {
+      _fanOverride = 0;
+      printTime(); Serial.println("Fan override has expired, setting back.");
+    }
+    else
+    {
+      return false; // Fan is overridden, don't change state.
+    }
   }
 
-  if (_devices.getHum() > 70 && !_fanOn)
+  if (_devices.getHum() > _fanHumidityThreshold && !_fanOn)
   {
     Serial.println("Turning fan ON");
     digitalWrite(fanPin, HIGH);
@@ -497,19 +509,35 @@ void WioGreenhouseApp::handleMQTTMessage(char* topic, byte* payload, unsigned in
 
   if (doc.containsKey("fan"))
   {
-    if (doc["fan"] == "on")
+    JsonObject fanConfig = doc["fan"];
+    if (fanConfig.containsKey("state"))
     {
-      _fanOn = true;
-      digitalWrite(fanPin, HIGH);
-      _fanOverride = 1;
-      printTime(); Serial.println("Fan turned ON via config");
+      if (fanConfig["state"] == "on")
+      {
+        _fanOn = true;
+        digitalWrite(fanPin, HIGH);
+        _fanOverride = 1;
+        _fanOverrideTimer.Reset();
+        printTime(); Serial.println("Fan turned ON via config");
+      }
+      else if (fanConfig["state"] == "off")
+      {
+        _fanOn = false;
+        digitalWrite(fanPin, LOW);
+        _fanOverride = 2;
+        _fanOverrideTimer.Reset();
+        printTime(); Serial.println("Fan turned OFF via config");
+      }
     }
-    else if (doc["fan"] == "off")
+
+    if (fanConfig.containsKey("humidity") )
     {
-      _fanOn = false;
-      digitalWrite(fanPin, LOW);
-      _fanOverride = 2;
-      printTime(); Serial.println("Fan turned OFF via config");
+      uint8_t humidityThreshold = fanConfig["humidity"].as<uint8_t>();
+      if (humidityThreshold >= 20 && humidityThreshold <= 100)
+      {
+        _fanHumidityThreshold = humidityThreshold;
+        printTime(); Serial.print("Fan humidity threshold set to "); Serial.println(_fanHumidityThreshold);
+      }
     }
   }
 

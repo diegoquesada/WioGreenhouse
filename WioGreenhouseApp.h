@@ -20,8 +20,6 @@ public:
     uint32_t getSerialNumber() const;
     String getIP() const { return WiFi.localIP().toString(); }
     String getMAC() const { return WiFi.macAddress(); }
-    bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
-    bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     uint8_t getSensorsStatus() const { return _devices.getSensorsStatus(); }
 
     String getBootReasonString() const;
@@ -31,7 +29,11 @@ public:
     String getDeviceName() const { return String(_deviceName); }
     void printTime(); /// Prints the current internal time since boot on the serial
 
+    bool isRelayOn(uint8_t relayIndex) const { return _relayState[relayIndex]; }
+    bool getRelayOverride(uint8_t relayIndex) const { return _relayOverride[relayIndex]; }
     void setRelay(uint8_t relayIndex, bool on, unsigned long delay);
+
+    bool isFanOn() const { return _fanOn; }
 
     WioGreenhouseDeviceMgr& getDevices() { return _devices; }
     static WioGreenhouseApp& getApp() { return *_singleton; }
@@ -71,13 +73,14 @@ private:
 
     char _deviceName[20] = { 0 };
 
-    const unsigned long FAN_INTERVAL = 2 * 60 * 1000; /// How often to turn the fan on, in ms
-    TimerCounter _fanTimer;
-    bool _fanOn = false;
-    uint8_t _fanOverride = 0; // 0 if not overridden (driven by humidity), 1 is override on, 2 is override off
+    const unsigned long FAN_INTERVAL = 2 * 60 * 1000; /// How often to turn the fan on/off, in ms
+    TimerCounter _fanTimer; // Timer for fan control
+    TimerCounter _fanOverrideTimer; // Timer for fan override
+    bool         _fanOn = false; // Current state of the fan
+    uint8_t      _fanOverride = 0; // 0 if not overridden (driven by humidity), 1 is override on, 2 is override off
+    uint8_t      _fanHumidityThreshold = 70; // Humidity threshold for turning the fan on
 
-    WiFiClient _wifiClient;
-
+    WiFiClient   _wifiClient;
     PubSubClient _pubSubClient;
 
     const unsigned long DEFAULT_UPDATE_INTERVAL = 5 * 60 * 1000; /// Default sensor update frequency - 5 min
